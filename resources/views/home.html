@@ -1,0 +1,46 @@
+<div class="container">
+    <header class="hero">
+        <h1>{{ title }}</h1>
+        <p class="lead">{{ description }}</p>
+    </header>
+
+    <section class="features">
+        <h2>Framework Features</h2>
+        <div class="feature-grid">
+            <!-- foreach example -->
+            @foreach(features as feature)
+            <div class="feature-card">
+                <h3>{{ feature }}</h3>
+                <p>Built with modern web standards</p>
+            </div>
+            @endforeach
+        </div>
+        <br>
+        <!-- for loop example -->
+        @for(let i=1;i<=10;i++) <span>${ i }</span>@endfor
+    </section>
+
+    <section class="demo">
+        <h2>Live Demo</h2>
+        <div class="demo-buttons">
+            <button data-api-url="/api/users" data-target="#api-result">
+                Load Users
+            </button>
+            <button data-api-url="/api/inspire" data-target="#api-result">
+                Load Posts
+            </button>
+        </div>
+        <div id="api-result" class="api-result">
+            <p>Click a button above to load data</p>
+        </div>
+    </section>
+
+    <section class="navigation">
+        <h2>Navigation</h2>
+        <nav>
+            <a href="/#/" data-route="/">Home</a>
+            <a href="/#/about" data-route="/about">About</a>
+            <a href="/#/contact" data-route="/contact">Contact</a>
+        </nav>
+    </section>
+</div>

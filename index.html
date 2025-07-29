@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Framework</title>
+    <link rel="stylesheet" href="resources/css/app.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Content will be dynamically loaded here -->
+    </div>
+
+    <!-- Framework Core -->
+    <script src="framework/core/Router.js"></script>
+    <script src="framework/core/Controller.js"></script>
+    <script src="framework/core/View.js"></script>
+    <script src="framework/core/Api.js"></script>
+    <script src="framework/core/App.js"></script>
+
+    <!-- Controllers -->
+    <script src="controllers/HomeController.js"></script>
+    <script src="controllers/ApiController.js"></script>
+
+    <!-- Routes -->
+    <script src="routes/web.js"></script>
+
+    <!-- Initialize App -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            App.init();
+        });
+    </script>
+</body>
+
+</html>

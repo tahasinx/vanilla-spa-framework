@@ -1,0 +1,25 @@
+<div class="container">
+    <header>
+        <h1>{{ title }}</h1>
+    </header>
+
+    <section class="content">
+        <p>{{ content }}</p>
+    </section>
+
+    <section class="team">
+        <h2>Our Team</h2>
+        <div class="team-grid">
+            @foreach(team as member)
+            <div class="team-member">
+                <h3>{{ member.name }}</h3>
+                <p>{{ member.role }}</p>
+            </div>
+            @endforeach
+        </div>
+    </section>
+
+    <nav>
+        <a href="/#/" data-route="/">← Back to Home</a>
+    </nav>
+</div>
