@@ -31,16 +31,17 @@ class View {
             return '';
         }
 
+        // Blade-like: Handle @extends, @section, @yield, @include
+        template = this.processIncludes(template, data);
+        if (/@extends\(['"](.+?)['"]\)/.test(template)) {
+            template = this.processExtends(template, data);
+        }
+
         // 1. Process @for first!
         let rendered = this.processForLoops(template, data);
 
         // 2. Only replace {{ ... }} outside of for-loops
-        // Split by for-loop blocks and process separately
-        rendered = rendered.replace(/@for\s*\(([^)]+)\)([\s\S]*?)@endfor/g, (match) => {
-            // Don't process {{ ... }} inside for-loops
-            return match;
-        });
-        // Now process {{ ... }} in the rest
+        rendered = rendered.replace(/@for\s*\(([^)]+)\)([\s\S]*?)@endfor/g, (match) => match);
         rendered = rendered.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, variable) => {
             const keys = variable.trim().split('.');
             let value = data;
@@ -201,6 +202,42 @@ class View {
                 output = '';
             }
             return output;
+        });
+    }
+
+    // Blade-like: Process @extends and @section
+    processExtends(template, data) {
+        // Find @extends('layout')
+        const extendsMatch = template.match(/@extends\(['"](.+?)['"]\)/);
+        if (!extendsMatch) return template;
+        const layoutName = extendsMatch[1];
+        let layout = this.templates[layoutName];
+        if (!layout) {
+            console.error(`Layout template '${layoutName}' not found`);
+            return template;
+        }
+        // Extract all @section('name') ... @endsection
+        const sections = {};
+        template.replace(/@section\(['"](.+?)['"]\)([\s\S]*?)@endsection/g, (match, name, content) => {
+            sections[name] = content.trim();
+            return '';
+        });
+        // Replace @yield('name') in layout with section content
+        layout = layout.replace(/@yield\(['"](.+?)['"]\)/g, (match, name) => {
+            return sections[name] || '';
+        });
+        return layout;
+    }
+
+    // Blade-like: Process @include('partial')
+    processIncludes(template, data) {
+        return template.replace(/@include\(['"](.+?)['"]\)/g, (match, partialName) => {
+            const partial = this.templates[partialName];
+            if (!partial) {
+                console.error(`Included template '${partialName}' not found`);
+                return '';
+            }
+            return partial;
         });
     }
 

@@ -53,6 +53,16 @@ class HomeController extends Controller {
         }
         this.view.updateElement('#app', 'contact', data);
     }
+
+    // Blade page
+    async blade() {
+        // Preload all needed templates with correct keys
+        await this.view.loadTemplate('layout', 'resources/views/master/layout.html');
+        await this.view.loadTemplate('blade', 'resources/views/master/blade.html');
+        await this.view.loadTemplate('alert', 'resources/views/master/alert.html');
+        // Render with data for the partial
+        this.view.updateElement('#app', 'blade', { message: 'This is an included alert!' });
+    }
 }
 
 // Expose globally

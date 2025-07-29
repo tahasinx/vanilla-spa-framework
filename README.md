@@ -6,7 +6,7 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 
 - ✅ **Unified Routing**: All routes (pages, APIs) handled in JS, auto-detects HTML/JSON
 - ✅ **Laravel-like Routing**: Define routes similar to Laravel's web.php
-- ✅ **Template System**: Blade-like syntax (`{{ variable }}`, `@if`, `@foreach`, `@for`)
+- ✅ **Template System**: Blade-like syntax (`{{ variable }}`, `@if`, `@foreach`, `@for`, `@extends`, `@section`, `@yield`, `@include`)
 - ✅ **API Integration**: Easy API calls with DOM updates
 - ✅ **Pure JavaScript**: No build tools or Node.js required
 - ✅ **Controller Pattern**: Organize code with controllers
@@ -16,7 +16,7 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 
 1. **Clone or download** the framework files
 2. **Run a local server** (do not use `file://` protocol)
-   - Example: `python -m http.server 5500`
+   - Example: `python -m http.server 5500` | `vs code live server extensions`
 3. **Open `index.html`** in your browser
 4. **Start developing** with the included structure
 
@@ -41,10 +41,83 @@ vanilla-spa-framework/
     ├── views/               # Template files
     │   ├── home.html
     │   ├── about.html
-    │   └── contact.html
+    │   ├── contact.html
+    │   └── master/
+    │       ├── layout.html
+    │       ├── blade.html
+    │       └── alert.html
     └── css/
         └── app.css          # Styles
 ```
+
+## Blade-like Layout Example
+
+### 1. **Master Layout** (`resources/views/master/layout.html`)
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My App - @yield('title')</title>
+</head>
+<body>
+    <header>
+        <h1>My App Header</h1>
+    </header>
+    <main>
+        @yield('content')
+    </main>
+    <footer>
+        <small>Copyright 2024</small>
+    </footer>
+</body>
+</html>
+```
+
+### 2. **Partial Include** (`resources/views/master/alert.html`)
+```html
+<div class="alert">
+    <strong>{{ message }}</strong>
+</div>
+```
+
+### 3. **Blade View** (`resources/views/master/blade.html`)
+```html
+@extends('layout')
+@section('title')
+Blade Template Engine
+@endsection
+
+@section('content')
+  <h2>Blade Page</h2>
+  <p>This is the blade page content. That is inspired by Laravel like template engine.</p>
+  @include('alert')
+@endsection
+```
+
+### 4. **Controller Function** (`controllers/HomeController.js`)
+```js
+class HomeController extends Controller {
+    // ...
+    async blade() {
+        await this.view.loadTemplate('layout', 'resources/views/master/layout.html');
+        await this.view.loadTemplate('blade', 'resources/views/master/blade.html');
+        await this.view.loadTemplate('alert', 'resources/views/master/alert.html');
+        this.view.updateElement('#app', 'blade', { message: 'This is an included alert!' });
+    }
+}
+window.HomeController = HomeController;
+```
+
+### 5. **Route** (`routes/web.js`)
+```js
+AppRouter.get('/blade', 'HomeController', 'blade');
+```
+
+**Now, visiting `/#/blade` will render the blade page using the master layout, with a section for the title, a section for the content, and an included alert partial.**
+
+---
+
+## More Features, API, and Template Syntax
 
 ## Routing
 
@@ -70,7 +143,7 @@ class ApiController extends Controller {
     // Example: Return JSON from an external API
     async inspire() {
         try {
-            const response = await fetch('https://eod365.com/run/39/inspire');
+            const response = await fetch('https://dummyjson.com/products');
             const text = await response.text();
             return { quote: text };
         } catch (error) {

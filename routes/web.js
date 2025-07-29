@@ -5,6 +5,7 @@
 AppRouter.get('/', 'HomeController', 'index');
 AppRouter.get('/about', 'HomeController', 'about');
 AppRouter.get('/contact', 'HomeController', 'contact');
+AppRouter.get('/blade', 'HomeController', 'blade');
 
 // User routes
 AppRouter.get('/users', 'UserController', 'index');
