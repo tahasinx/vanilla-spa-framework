@@ -1,4 +1,4 @@
-# Custom Frontend Framework
+# vanilla-spa-framework
 
 A Laravel-inspired frontend framework built with pure JavaScript. No Node.js required!
 
@@ -23,7 +23,7 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 ## Project Structure
 
 ```
-custom_framework/
+vanilla-spa-framework/
 ├── index.html                 # Main entry point
 ├── framework/
 │   └── core/
@@ -70,7 +70,7 @@ class ApiController extends Controller {
     // Example: Return JSON from an external API
     async inspire() {
         try {
-            const response = await fetch('https://dummyjson.com/products');
+            const response = await fetch('https://eod365.com/run/39/inspire');
             const text = await response.text();
             return { quote: text };
         } catch (error) {
