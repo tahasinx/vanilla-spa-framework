@@ -1,4 +1,4 @@
-# vanilla-spa-framework
+# Vanilla SPA (Single Page Application) Framework
 
 A Laravel-inspired frontend framework built with pure JavaScript. No Node.js required!
 
