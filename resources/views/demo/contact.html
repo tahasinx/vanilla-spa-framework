@@ -1,0 +1,66 @@
+@extends('demo.layout')
+
+@section('content')
+<header class="showcase">
+    <h2>{{ pageHeading }}</h2>
+    <p>Email: {{ email }} | Phone: {{ phone }}</p>
+    <a href="/#/demo/services" class="btn" data-route="/demo/services">
+        View Services <i class="fas fa-chevron-right"></i>
+    </a>
+</header>
+
+<section class="ms-grid">
+    <article class="ms-panel">
+        <h2>Office Hours</h2>
+        <table class="ms-table">
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>Hours</th>
+                    <th>Timezone</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(offices as office)
+                <tr>
+                    <td>{{ office.location }}</td>
+                    <td>{{ office.hours }}</td>
+                    <td>{{ office.timezone }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </article>
+
+    <article class="ms-panel">
+        <h2>Inquiry Types</h2>
+        <div class="ms-chip-list">
+            @foreach(inquiryTypes as item)
+            <span class="ms-chip">{{ item }}</span>
+            @endforeach
+        </div>
+    </article>
+</section>
+
+<section class="ms-panel">
+    <h2>Send a Message</h2>
+    <form class="ms-form" data-action="/api/demo/contact" data-method="POST" data-target="#demo-form-result">
+        <div class="form-group">
+            <label for="demo-name">Full Name</label>
+            <input id="demo-name" type="text" name="name" placeholder="Enter your full name" required>
+        </div>
+        <div class="form-group">
+            <label for="demo-email">Work Email</label>
+            <input id="demo-email" type="email" name="email" placeholder="name@company.com" required>
+        </div>
+        <div class="form-group">
+            <label for="demo-message">Project Brief</label>
+            <textarea id="demo-message" name="message" rows="4" placeholder="Tell us your goals, timeline, and budget." required></textarea>
+        </div>
+        <button type="submit">Submit Inquiry</button>
+    </form>
+    <div id="demo-form-result" class="api-result">
+        <p>Submit the form to see API response rendering.</p>
+    </div>
+</section>
+@endsection

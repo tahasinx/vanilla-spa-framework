@@ -6,8 +6,8 @@ class HomeController extends Controller {
     // Home page
     async index() {
         const data = {
-            title: 'Welcome to Custom Framework',
-            description: 'A Laravel-like frontend framework built with pure JavaScript',
+            title: 'Build fast with Vanilla SPA Framework',
+            description: 'A lightweight client-side framework with routing, templates, and API utilities in pure JavaScript.',
             features: [
                 'Laravel-like routing',
                 'Template system',
@@ -38,6 +38,19 @@ class HomeController extends Controller {
             await this.view.loadTemplate('about', 'resources/views/about.html');
         }
         this.view.updateElement('#app', 'about', data);
+    }
+
+    // Documentation page
+    async docs() {
+        const data = {
+            title: 'Vanilla SPA Framework Documentation',
+            subtitle: 'Practical examples for routing, templates, API calls, and event-driven UI behavior.'
+        };
+
+        if (!this.view.templates['docs']) {
+            await this.view.loadTemplate('docs', 'resources/views/docs.html');
+        }
+        this.view.updateElement('#app', 'docs', data);
     }
 
     // Contact page

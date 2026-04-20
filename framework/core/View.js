@@ -40,8 +40,11 @@ class View {
         // 1. Process @for first!
         let rendered = this.processForLoops(template, data);
 
-        // 2. Only replace {{ ... }} outside of for-loops
-        rendered = rendered.replace(/@for\s*\(([^)]+)\)([\s\S]*?)@endfor/g, (match) => match);
+        // 2. Replace @if, @foreach, etc. first so loop-scoped variables remain available.
+        rendered = this.processConditionals(rendered, data);
+        rendered = this.processLoops(rendered, data);
+
+        // 3. Replace remaining {{ ... }} after loops/conditionals have expanded.
         rendered = rendered.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, variable) => {
             const keys = variable.trim().split('.');
             let value = data;
@@ -55,10 +58,6 @@ class View {
             }
             return value !== undefined ? value : '';
         });
-
-        // 3. Replace @if, @foreach, etc.
-        rendered = this.processConditionals(rendered, data);
-        rendered = this.processLoops(rendered, data);
 
         return rendered;
     }
@@ -141,10 +140,11 @@ class View {
         // 1. Process @for first!
         let rendered = this.processForLoops(content, data);
 
-        // 2. Only replace {{ ... }} outside of for-loops
-        rendered = rendered.replace(/@for\s*\(([^)]+)\)([\s\S]*?)@endfor/g, (match) => {
-            return match;
-        });
+        // 2. Replace @if, @foreach, etc. first so loop-scoped variables remain available.
+        rendered = this.processConditionals(rendered, data);
+        rendered = this.processLoops(rendered, data);
+
+        // 3. Replace remaining {{ ... }} after loops/conditionals have expanded.
         rendered = rendered.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, variable) => {
             const keys = variable.trim().split('.');
             let value = data;
@@ -159,10 +159,6 @@ class View {
             return value !== undefined ? value : '';
         });
 
-        // 3. Replace @if, @foreach, etc.
-        rendered = this.processConditionals(rendered, data);
-        rendered = this.processLoops(rendered, data);
-
         return rendered;
     }
 
@@ -170,39 +166,88 @@ class View {
     processForLoops(template, data) {
         // Match @for(expression) ... @endfor
         return template.replace(/@for\s*\(([^)]+)\)([\s\S]*?)@endfor/g, (match, expr, loopContent) => {
-            let output = '';
-            try {
-                // Find all variable declarations in the for expression
-                const varNames = [];
-                const varRegex = /(?:var|let|const)\s+([a-zA-Z_$][\w$]*)/g;
-                let m;
-                while ((m = varRegex.exec(expr)) !== null) {
-                    varNames.push(m[1]);
-                }
-                let processedContent = loopContent;
-                // Replace {{ var }} with ${var} for all declared variables
-                for (const varName of varNames) {
-                    processedContent = processedContent.replace(new RegExp(`\{\{\s*${varName}\s*\}\}`, 'g'), '${' + varName + '}');
-                }
-                // Also replace {{ key }} with ${key} for all data keys
-                for (const key of Object.keys(data)) {
-                    processedContent = processedContent.replace(new RegExp(`\{\{\s*${key}\s*\}\}`, 'g'), '${' + key + '}');
-                }
-                // Build variable declarations for all data keys
-                let dataVars = '';
-                for (const key of Object.keys(data)) {
-                    if (/^[a-zA-Z_$][\w$]*$/.test(key)) {
-                        dataVars += `var ${key} = data["${key}"]\n`;
-                    }
-                }
-                // eslint-disable-next-line no-new-func
-                const loopFn = new Function('data', `${dataVars}let output = ''; for (${expr}) { output += \`${processedContent.replace(/`/g, '\\`')}\`; } return output;`);
-                output = loopFn(data);
-            } catch (e) {
-                output = '';
+            const parsed = this.parseSimpleForExpression(expr, data);
+            if (!parsed) {
+                console.warn(`Skipping unsupported @for expression: ${expr}`);
+                return '';
             }
+
+            const { variableName, start, end, inclusive, step } = parsed;
+            let output = '';
+
+            if (step === 0) {
+                return output;
+            }
+
+            for (
+                let i = start;
+                step > 0 ? (inclusive ? i <= end : i < end) : (inclusive ? i >= end : i > end);
+                i += step
+            ) {
+                const loopData = { ...data, [variableName]: i };
+                output += this.renderContent(loopContent, loopData);
+            }
+
             return output;
         });
+    }
+
+    // Parse a constrained @for expression safely without eval/new Function.
+    parseSimpleForExpression(expr, data) {
+        const pattern = /^\s*(?:let|var|const)\s+([a-zA-Z_$][\w$]*)\s*=\s*([^;]+)\s*;\s*\1\s*(<=|<|>=|>)\s*([^;]+)\s*;\s*\1\s*(\+\+|--|\+=\s*-?\d+|-=\s*-?\d+)\s*$/;
+        const match = expr.match(pattern);
+        if (!match) {
+            return null;
+        }
+
+        const variableName = match[1];
+        const startRaw = match[2].trim();
+        const operator = match[3];
+        const endRaw = match[4].trim();
+        const updateRaw = match[5].replace(/\s+/g, '');
+
+        const start = this.resolveNumericValue(startRaw, data);
+        const end = this.resolveNumericValue(endRaw, data);
+        if (!Number.isFinite(start) || !Number.isFinite(end)) {
+            return null;
+        }
+
+        let step = 0;
+        if (updateRaw === '++') {
+            step = 1;
+        } else if (updateRaw === '--') {
+            step = -1;
+        } else if (updateRaw.startsWith('+=')) {
+            step = Number(updateRaw.slice(2));
+        } else if (updateRaw.startsWith('-=')) {
+            step = -Number(updateRaw.slice(2));
+        }
+
+        if (!Number.isFinite(step) || step === 0) {
+            return null;
+        }
+
+        const inclusive = operator === '<=' || operator === '>=';
+
+        return {
+            variableName,
+            start,
+            end,
+            inclusive,
+            step
+        };
+    }
+
+    resolveNumericValue(raw, data) {
+        const trimmed = raw.trim();
+
+        if (/^-?\d+$/.test(trimmed)) {
+            return Number(trimmed);
+        }
+
+        const nested = this.getNestedValue(trimmed, data);
+        const numeric = Number(nested);
+        return Number.isFinite(numeric) ? numeric : NaN;
     }
 
     // Blade-like: Process @extends and @section

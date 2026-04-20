@@ -1,0 +1,34 @@
+@extends('demo.layout')
+
+@section('content')
+<header class="showcase">
+    <h2>{{ pageHeading }}</h2>
+    <p>{{ post.category }} | {{ post.date }} | {{ post.readTime }}</p>
+    <a href="/#/demo/blog" class="btn" data-route="/demo/blog">
+        Back to Blog <i class="fas fa-chevron-right"></i>
+    </a>
+</header>
+
+<section class="ms-panel">
+    <h2>Article Summary</h2>
+    <p>{{ post.summary }}</p>
+</section>
+
+<section class="ms-panel">
+    <h2>Key Points</h2>
+    <table class="ms-table">
+        <thead>
+            <tr>
+                <th>Point</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(post.keyPoints as point)
+            <tr>
+                <td>{{ point }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</section>
+@endsection

@@ -1,0 +1,66 @@
+@extends('demo.layout')
+
+@section('content')
+<header class="showcase">
+    <h2>{{ pageHeading }}</h2>
+    <p>Structured service matrix, pricing options, and clear delivery scope.</p>
+    <a href="/#/demo/contact" class="btn" data-route="/demo/contact">
+        Start a Project <i class="fas fa-chevron-right"></i>
+    </a>
+</header>
+
+<section class="ms-panel">
+    <h2>Service Delivery Table</h2>
+    <table class="ms-table">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Timeline</th>
+                <th>Owner</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(serviceRows as row)
+            <tr>
+                <td>{{ row.service }}</td>
+                <td>{{ row.timeline }}</td>
+                <td>{{ row.owner }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</section>
+
+<section class="ms-panel">
+    <h2>Plan Comparison</h2>
+    <table class="ms-table">
+        <thead>
+            <tr>
+                <th>Plan</th>
+                <th>Price</th>
+                <th>Pages</th>
+                <th>Support</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(plans as plan)
+            <tr>
+                <td>{{ plan.name }}</td>
+                <td>{{ plan.price }}</td>
+                <td>{{ plan.pages }}</td>
+                <td>{{ plan.support }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</section>
+
+<section class="ms-panel">
+    <h2>Standard Deliverables</h2>
+    <div class="ms-chip-list">
+        @foreach(deliverables as item)
+        <span class="ms-chip">{{ item }}</span>
+        @endforeach
+    </div>
+</section>
+@endsection

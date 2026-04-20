@@ -1,47 +1,41 @@
-<div class="container">
-    <header class="hero">
-        <h1>{{ title }}</h1>
-        <p class="lead">{{ description }}</p>
-    </header>
+<div class="landing-shell">
+    <div class="landing-card">
+        <div class="landing-left">
+            <p class="landing-kicker">Let's get started</p>
+            <h1 class="landing-title">With so many options available to you,</h1>
+            <p class="landing-description">we suggest you start with the following.</p>
 
-    <section class="features">
-        <h2>Framework Features</h2>
-        <div class="feature-grid">
-            <!-- foreach example -->
-            @foreach(features as feature)
-            <div class="feature-card">
-                <h3>{{ feature }}</h3>
-                <p>Built with modern web standards</p>
+            <ul class="landing-links">
+                <li>
+                    <a href="/#/docs" data-route="/docs">
+                        <span class="dot"></span>
+                        <span>Read the <span class="accent-link">Documentation</span> <span class="link-arrow">&nearr;</span></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/#/demo" target="_blank" rel="noopener">
+                        <span class="dot"></span>
+                        <span>Watch practical examples in <span class="accent-link">Complete Website Demo</span> <span class="link-arrow">&nearr;</span></span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="landing-actions">
+                <a class="deploy-btn" href="/#/docs" data-route="/docs">Deploy now</a>
             </div>
-            @endforeach
-        </div>
-        <br>
-        <!-- for loop example -->
-        @for(let i=1;i<=10;i++) <span>${ i }</span>@endfor
-    </section>
 
-    <section class="demo">
-        <h2>Live Demo</h2>
-        <div class="demo-buttons">
-            <button data-api-url="/api/users" data-target="#api-result">
-                Load Users
-            </button>
-            <button data-api-url="/api/inspire" data-target="#api-result">
-                Load API Data
-            </button>
         </div>
-        <div id="api-result" class="api-result">
-            <p>Click a button above to load data</p>
-        </div>
-    </section>
 
-    <section class="navigation">
-        <h2>Navigation</h2>
-        <nav>
-            <a href="/#/" data-route="/">Home</a>
-            <a href="/#/about" data-route="/about">About</a>
-            <a href="/#/contact" data-route="/contact">Contact</a>
-            <a href="/#/blade" data-route="/blade">Blade</a>
-        </nav>
-    </section>
+        <div class="landing-right" aria-hidden="true">
+            <div class="hero-frame"></div>
+            <div class="hero-word">Vanilla SPA</div>
+            <div class="hero-subword">Framework</div>
+            <div class="hero-number">VSF</div>
+            <div class="hero-lines">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
 </div>

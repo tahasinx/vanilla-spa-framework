@@ -60,15 +60,22 @@ class Api {
 
         // Otherwise, do a real network request
         const fullUrl = url.startsWith('http') ? url : this.baseUrl + url;
+        const { data, ...requestOptions } = options;
         const config = {
             method: method,
-            headers: { ...this.defaultHeaders, ...options.headers },
-            ...options
+            headers: { ...this.defaultHeaders, ...(requestOptions.headers || {}) },
+            ...requestOptions
         };
 
         // Add body for requests that need it
-        if (['POST', 'PUT', 'PATCH'].includes(method) && options.data) {
-            config.body = JSON.stringify(options.data);
+        if (['POST', 'PUT', 'PATCH'].includes(method) && data !== undefined) {
+            if (data instanceof FormData) {
+                config.body = data;
+                // Browser must set multipart boundary automatically.
+                delete config.headers['Content-Type'];
+            } else {
+                config.body = JSON.stringify(data);
+            }
         }
 
         try {

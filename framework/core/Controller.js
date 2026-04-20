@@ -1,7 +1,7 @@
 class Controller {
     constructor() {
-        this.view = new View();
-        this.api = new Api();
+        this.view = window.View || (window.View = new View());
+        this.api = window.Api || (window.Api = new Api());
     }
 
     // Render a view
@@ -11,7 +11,11 @@ class Controller {
 
     // Redirect to another route
     redirect(path) {
-        Router.navigate(path);
+        if (window.AppRouter && typeof window.AppRouter.navigate === 'function') {
+            window.AppRouter.navigate(path);
+            return;
+        }
+        console.error('Router is not initialized');
     }
 
     // Return JSON response

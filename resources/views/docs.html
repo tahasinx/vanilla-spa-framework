@@ -1,0 +1,211 @@
+<div class="container docs-page">
+    <header class="docs-hero">
+        <h1>{{ title }}</h1>
+        <p>{{ subtitle }}</p>
+        <div class="docs-hero-actions">
+            <a href="/#/" data-route="/">Back to Home</a>
+            <button class="docs-drawer-toggle" type="button" aria-label="Open docs navigation">Menu</button>
+        </div>
+    </header>
+
+    <div class="docs-layout">
+        <aside class="docs-sidebar">
+            <h3>On this page</h3>
+            <a href="javascript:void(0)" data-docs-target="quick-start">Quick Start</a>
+            <a href="javascript:void(0)" data-docs-target="structure">Project Structure</a>
+            <a href="javascript:void(0)" data-docs-target="routing">Routing</a>
+            <a href="javascript:void(0)" data-docs-target="controllers">Controllers</a>
+            <a href="javascript:void(0)" data-docs-target="views">Views & Templates</a>
+            <a href="javascript:void(0)" data-docs-target="syntax">Template Syntax</a>
+            <a href="javascript:void(0)" data-docs-target="api">API Integration</a>
+            <a href="javascript:void(0)" data-docs-target="forms">Form Handling</a>
+            <a href="javascript:void(0)" data-docs-target="config">Configuration</a>
+            <a href="javascript:void(0)" data-docs-target="browser">Browser Support</a>
+            <a href="javascript:void(0)" data-docs-target="workflow">Development Workflow</a>
+        </aside>
+
+        <main class="docs-content">
+            <section class="docs-section" id="quick-start">
+                <h2>Quick Start</h2>
+                <ol class="docs-list">
+                    <li>Clone or download this framework.</li>
+                    <li>Run a local server (do not use <code>file://</code>).</li>
+                    <li>Open <code>index.html</code> in your browser.</li>
+                    <li>Define routes in <code>routes/web.js</code> and build features.</li>
+                </ol>
+                <pre class="docs-code"># Example local server
+python -m http.server 5500</pre>
+            </section>
+
+            <section class="docs-section" id="structure">
+                <h2>Project Structure</h2>
+                <p>Everything is organized into core framework modules, routes, controllers, and views.</p>
+                <pre class="docs-code">vanilla-spa-framework/
+├── index.html
+├── framework/core/
+│   ├── Router.js
+│   ├── Controller.js
+│   ├── View.js
+│   ├── Api.js
+│   └── App.js
+├── routes/web.js
+├── controllers/
+│   ├── HomeController.js
+│   └── ApiController.js
+└── resources/
+    ├── views/
+    └── css/app.css</pre>
+            </section>
+
+            <section class="docs-section" id="routing">
+                <h2>Routing (Unified + Laravel-like)</h2>
+                <p>Define all web and API routes in <code>routes/web.js</code> using <code>AppRouter</code>.</p>
+                <pre class="docs-code">// Page routes
+AppRouter.get('/', 'HomeController', 'index');
+AppRouter.get('/docs', 'HomeController', 'docs');
+AppRouter.get('/contact', 'HomeController', 'contact');
+
+// API routes
+AppRouter.get('/api/users', 'ApiController', 'getUsers');
+AppRouter.get('/api/inspire', 'ApiController', 'inspire');</pre>
+                <p class="docs-tip">Tip: keep routing centralized in one file for predictable maintenance.</p>
+            </section>
+
+            <section class="docs-section" id="controllers">
+                <h2>Controllers Pattern</h2>
+                <p>Controllers extend <code>Controller</code>, load templates, and send data to views.</p>
+                <pre class="docs-code">class HomeController extends Controller {
+  async docs() {
+    if (!this.view.templates['docs']) {
+      await this.view.loadTemplate('docs', 'resources/views/docs.html');
+    }
+    this.view.updateElement('#app', 'docs', {
+      title: 'Vanilla SPA Framework Documentation'
+    });
+  }
+}
+window.HomeController = HomeController;</pre>
+                <div class="docs-actions">
+                    <a href="/#/about" data-route="/about">See Controller-driven About Page</a>
+                </div>
+            </section>
+
+            <section class="docs-section" id="views">
+                <h2>Views & Blade-like Rendering</h2>
+                <p>Templates live in <code>resources/views</code> and support layout + partial patterns.</p>
+                <pre class="docs-code">&#64;extends('layout')
+&#64;section('title')
+Blade Template Engine
+&#64;endsection
+
+&#64;section('content')
+  <h2>Blade Page</h2>
+  &#64;include('alert')
+&#64;endsection</pre>
+                <div class="docs-actions">
+                    <a href="/#/blade" data-route="/blade">Run Real Blade Demo</a>
+                </div>
+            </section>
+
+            <section class="docs-section" id="syntax">
+                <h2>Template Syntax (Variables, Conditions, Loops)</h2>
+
+                <h3>Variables</h3>
+                <pre class="docs-code">&lt;h1&gt;{{ title }}&lt;/h1&gt;
+&lt;p&gt;{{ user.name }}&lt;/p&gt;</pre>
+
+                <h3>Conditionals</h3>
+                <pre class="docs-code">&#64;if(user.isAdmin)
+  &lt;div class="admin-panel"&gt;Admin Content&lt;/div&gt;
+&#64;else
+  &lt;div class="basic-panel"&gt;Basic Content&lt;/div&gt;
+&#64;endif</pre>
+
+                <h3>Foreach Loop</h3>
+                <pre class="docs-code">&#64;foreach(users as user)
+  &lt;div class="user-card"&gt;
+    &lt;h4&gt;{{ user.name }}&lt;/h4&gt;
+    &lt;p&gt;{{ user.email }}&lt;/p&gt;
+  &lt;/div&gt;
+&#64;endforeach</pre>
+
+                <h3>For Loop</h3>
+                <pre class="docs-code">&#64;for(let i=1;i<=5;i++)
+  &lt;div&gt;Index: ${i}&lt;/div&gt;
+&#64;endfor</pre>
+                <p class="docs-tip">Use <code>${i}</code> for loop variables inside <code>@for</code> blocks.</p>
+            </section>
+
+            <section class="docs-section" id="api">
+                <h2>API Integration</h2>
+                <p>Use one API helper for internal controller routes and external network APIs.</p>
+                <pre class="docs-code">// In controller methods
+const users = await this.api.get('/api/users');
+const created = await this.api.post('/api/users', { name: 'John' });
+
+// DOM helper methods
+this.api.updateElement('#users', '/api/users');
+this.api.renderTemplate('#users', 'user-list', '/api/users');</pre>
+
+                <h3>Live API Examples</h3>
+                <div class="demo-buttons">
+                    <button data-api-url="/api/users" data-target="#docs-api-result">Load Users</button>
+                    <button data-api-url="/api/inspire" data-target="#docs-api-result">Load External API Data</button>
+                </div>
+                <div id="docs-api-result" class="api-result">
+                    <p>Click a button to run API integration examples.</p>
+                </div>
+
+                <h3>CORS Notes</h3>
+                <p>External APIs must allow CORS. Frontend JS cannot bypass CORS restrictions by itself.</p>
+                <pre class="docs-code">// Development-only proxy example
+https://corsproxy.io/?https://example.com/api</pre>
+            </section>
+
+            <section class="docs-section" id="forms">
+                <h2>Form Handling</h2>
+                <p>Add data attributes and let the framework submit/dispatch events automatically.</p>
+                <pre class="docs-code">&lt;form data-action="/api/users" data-method="POST" data-target="#result"&gt;
+  &lt;input type="text" name="name" required /&gt;
+  &lt;input type="email" name="email" required /&gt;
+  &lt;button type="submit"&gt;Submit&lt;/button&gt;
+&lt;/form&gt;
+&lt;div id="result"&gt;&lt;/div&gt;</pre>
+                <p class="docs-tip">You can listen to <code>form-success</code> and <code>form-error</code> events on the form.</p>
+            </section>
+
+            <section class="docs-section" id="config">
+                <h2>Configuration</h2>
+                <p>Set API base URL and debug mode from your startup script.</p>
+                <pre class="docs-code">App.config({
+  apiUrl: 'https://api.example.com',
+  debug: true
+});</pre>
+            </section>
+
+            <section class="docs-section" id="browser">
+                <h2>Browser Support</h2>
+                <ul class="docs-list">
+                    <li>Chrome 60+</li>
+                    <li>Firefox 55+</li>
+                    <li>Safari 12+</li>
+                    <li>Edge 79+</li>
+                </ul>
+            </section>
+
+            <section class="docs-section" id="workflow">
+                <h2>Development Workflow</h2>
+                <ol class="docs-list">
+                    <li>Add routes in <code>routes/web.js</code>.</li>
+                    <li>Create or update controllers in <code>controllers/</code>.</li>
+                    <li>Create templates in <code>resources/views/</code>.</li>
+                    <li>Style in <code>resources/css/app.css</code>.</li>
+                </ol>
+                <nav class="docs-nav">
+                    <a href="/#/" data-route="/">Back to Home</a>
+                    <a href="/#/contact" data-route="/contact">Need Help? Contact</a>
+                </nav>
+            </section>
+        </main>
+    </div>
+</div>

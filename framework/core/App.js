@@ -66,15 +66,149 @@ class App {
         document.addEventListener('click', (event) => {
             const link = event.target.closest('a');
             if (link && link.getAttribute('data-route')) {
+                if (link.getAttribute('target') === '_blank') {
+                    return;
+                }
                 event.preventDefault();
                 const route = link.getAttribute('data-route');
                 window.AppRouter.navigate(route);
+
+                // Close mobile demo menu after selecting a route
+                const isDemoMenuLink = link.closest('.ms-demo .main-menu');
+                if (isDemoMenuLink) {
+                    const mainMenu = document.querySelector('.ms-demo .main-menu');
+                    if (mainMenu) {
+                        mainMenu.classList.remove('show');
+                    }
+                }
             }
         });
 
+        // Handle demo mobile menu toggle
+        document.addEventListener('click', (event) => {
+            const menuBtn = event.target.closest('.ms-demo .menu-btn');
+            const mainMenu = document.querySelector('.ms-demo .main-menu');
+            if (!mainMenu) {
+                return;
+            }
+
+            if (menuBtn) {
+                mainMenu.classList.toggle('show');
+                return;
+            }
+
+            // Close menu when clicking outside on mobile
+            const clickedInsideMenu = event.target.closest('.ms-demo .main-menu');
+            if (!clickedInsideMenu) {
+                mainMenu.classList.remove('show');
+            }
+        });
+
+        // Keep demo menu active state synced with current route
+        const normalizePath = (path) => {
+            if (!path) return '/';
+            if (path.length > 1 && path.endsWith('/')) {
+                return path.slice(0, -1);
+            }
+            return path;
+        };
+
+        const syncDemoMenuActiveState = () => {
+            if (!window.AppRouter || typeof window.AppRouter.getCurrentPath !== 'function') {
+                return;
+            }
+
+            const currentPath = normalizePath(window.AppRouter.getCurrentPath());
+            const demoMenuLinks = document.querySelectorAll('.ms-demo .main-menu a[data-route]');
+
+            demoMenuLinks.forEach((menuLink) => {
+                const route = normalizePath(menuLink.getAttribute('data-route'));
+                const isExactMatch = route === currentPath;
+                const isNestedMatch = route !== '/demo' && currentPath.startsWith(`${route}/`);
+                menuLink.classList.toggle('is-active', isExactMatch || isNestedMatch);
+            });
+        };
+
+        const scheduleDemoMenuSync = () => {
+            // Route rendering is async; run after current paint cycle.
+            requestAnimationFrame(() => {
+                requestAnimationFrame(syncDemoMenuActiveState);
+            });
+        };
+
+        window.addEventListener('hashchange', scheduleDemoMenuSync);
+        scheduleDemoMenuSync();
+
+        // Docs page sidebar interactions: drawer + scroll spy
+        document.addEventListener('click', (event) => {
+            const docsToggle = event.target.closest('.docs-drawer-toggle');
+            const docsSidebar = document.querySelector('.docs-sidebar');
+
+            if (docsToggle && docsSidebar) {
+                docsSidebar.classList.toggle('is-open');
+                return;
+            }
+
+            const docsNavLink = event.target.closest('.docs-sidebar a[data-docs-target]');
+            if (docsNavLink) {
+                const targetId = docsNavLink.getAttribute('data-docs-target');
+                const section = document.getElementById(targetId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                if (docsSidebar) {
+                    docsSidebar.classList.remove('is-open');
+                }
+                return;
+            }
+
+            if (docsSidebar && docsSidebar.classList.contains('is-open')) {
+                const clickedInsideSidebar = event.target.closest('.docs-sidebar');
+                if (!clickedInsideSidebar) {
+                    docsSidebar.classList.remove('is-open');
+                }
+            }
+        });
+
+        const syncDocsSidebarActiveState = () => {
+            const docsLinks = document.querySelectorAll('.docs-sidebar a[data-docs-target]');
+            if (!docsLinks.length) {
+                return;
+            }
+
+            const sections = Array.from(docsLinks)
+                .map((link) => document.getElementById(link.getAttribute('data-docs-target')))
+                .filter(Boolean);
+
+            if (!sections.length) {
+                return;
+            }
+
+            let activeSectionId = sections[0].id;
+            const marker = window.scrollY + 140;
+            for (const section of sections) {
+                if (section.offsetTop <= marker) {
+                    activeSectionId = section.id;
+                }
+            }
+
+            docsLinks.forEach((link) => {
+                const targetId = link.getAttribute('data-docs-target');
+                link.classList.toggle('is-active', targetId === activeSectionId);
+            });
+        };
+
+        window.addEventListener('scroll', syncDocsSidebarActiveState, { passive: true });
+        window.addEventListener('resize', syncDocsSidebarActiveState);
+        requestAnimationFrame(syncDocsSidebarActiveState);
+
         // Handle API update triggers
         document.addEventListener('click', (event) => {
-            const element = event.target;
+            const element = event.target.closest('[data-api-url]');
+            if (!element) {
+                return;
+            }
+
             const apiUrl = element.getAttribute('data-api-url');
             const targetSelector = element.getAttribute('data-target');
 

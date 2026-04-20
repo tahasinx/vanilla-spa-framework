@@ -1,0 +1,59 @@
+@extends('demo.layout')
+
+@section('content')
+<header class="showcase">
+    <h2>{{ pageHeading }}</h2>
+    <p>Editorial posts and monthly performance data rendered from controller arrays.</p>
+    <a href="/#/demo/contact" class="btn" data-route="/demo/contact">
+        Contact Editorial Team <i class="fas fa-chevron-right"></i>
+    </a>
+</header>
+
+<section class="ms-panel">
+    <h2>Latest Articles</h2>
+    <table class="ms-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Read Time</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(posts as post)
+            <tr>
+                <td>{{ post.title }}</td>
+                <td>{{ post.category }}</td>
+                <td>{{ post.date }}</td>
+                <td>{{ post.readTime }}</td>
+                <td><a href="/#/demo/blog/{{ post.id }}" data-route="/demo/blog/{{ post.id }}">View</a></td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</section>
+
+<section class="ms-panel">
+    <h2>Traffic & Conversion Data</h2>
+    <table class="ms-table">
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th>Visitors</th>
+                <th>Conversion</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(performance as row)
+            <tr>
+                <td>{{ row.month }}</td>
+                <td>{{ row.visitors }}</td>
+                <td>{{ row.conversions }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</section>
+@endsection

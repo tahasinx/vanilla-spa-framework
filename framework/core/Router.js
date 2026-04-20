@@ -67,6 +67,10 @@ class Router {
 
     // Match path with parameters
     matchPath(routePath, currentPath) {
+        if (routePath === '*') {
+            return true;
+        }
+
         const routeParts = routePath.split('/').filter(part => part !== '');
         const currentParts = currentPath.split('/').filter(part => part !== '');
 
@@ -112,11 +116,14 @@ class Router {
     // Handle the current route
     handleRoute() {
         const path = this.getCurrentPath();
-        const route = this.match(path);
+        let route = this.match(path);
 
         if (!route) {
-            console.error('Route not found');
-            return;
+            route = this.routes.find(r => r.path === '*');
+            if (!route) {
+                console.error(`Route not found for path "${path}"`);
+                return;
+            }
         }
 
         this.currentRoute = route;
@@ -129,6 +136,10 @@ class Router {
             return;
         }
         const controller = new ControllerClass();
+        if (typeof controller[route.action] !== 'function') {
+            console.error(`Action "${route.action}" not found on controller "${route.controller}".`);
+            return;
+        }
         controller[route.action](params);
     }
 
@@ -144,7 +155,8 @@ class Router {
 
     // Call a route directly (for API-like calls)
     async callRoute(path, method = 'GET', data = {}) {
-        const route = this.routes.find(r => r.path === path && r.method === method);
+        const normalizedMethod = String(method).toUpperCase();
+        const route = this.routes.find(r => r.path === path && r.method === normalizedMethod);
         if (!route) return { status: 404, data: { error: 'Not found' }, type: 'json' };
 
         const ControllerClass = window[route.controller];

@@ -21,6 +21,25 @@ class ApiController extends Controller {
             return { error: 'Failed to fetch external API' };
         }
     }
+
+    // Demo stats for practical API integration examples
+    async getDemoStats() {
+        return this.apiResponse({
+            visitorsToday: 1284,
+            conversionRate: '4.9%',
+            openTickets: 7,
+            topPage: '/demo/services'
+        }, 200);
+    }
+
+    // Demo contact endpoint for form handling examples
+    async submitDemoContact(data = {}) {
+        return this.apiResponse({
+            success: true,
+            message: `Thanks ${data.name || 'there'}, your message was received.`,
+            payload: data
+        }, 200);
+    }
 }
 
 // Expose globally
