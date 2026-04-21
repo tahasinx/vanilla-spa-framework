@@ -13,12 +13,15 @@ class View {
     async loadTemplate(name, url) {
         try {
             const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load template "${name}" from "${url}" (HTTP ${response.status})`);
+            }
             const template = await response.text();
             this.templates[name] = template;
             return template;
         } catch (error) {
             console.error('Error loading template:', error);
-            return '';
+            throw error;
         }
     }
 
@@ -44,19 +47,63 @@ class View {
         rendered = this.processConditionals(rendered, data);
         rendered = this.processLoops(rendered, data);
 
-        // 3. Replace remaining {{ ... }} after loops/conditionals have expanded.
+        // 3. Raw output first (Laravel-style): {!! variable !!}
+        rendered = rendered.replace(/\{!!\s*([^}]+)\s*!!\}/g, (match, variable) => {
+            const value = this.resolveVariable(variable, data);
+            return value !== undefined ? String(value) : '';
+        });
+
+        // 4. Escaped output (Laravel-style default): {{ variable }}
         rendered = rendered.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, variable) => {
-            const keys = variable.trim().split('.');
-            let value = data;
-            for (let key of keys) {
-                if (value && typeof value === 'object' && key in value) {
-                    value = value[key];
-                } else {
-                    value = '';
-                    break;
-                }
+            const value = this.resolveVariable(variable, data);
+            return this.escapeHtml(value !== undefined ? String(value) : '');
+        });
+
+        return rendered;
+    }
+
+    resolveVariable(variable, data) {
+        const keys = variable.trim().split('.');
+        let value = data;
+        for (let key of keys) {
+            if (value && typeof value === 'object' && key in value) {
+                value = value[key];
+            } else {
+                value = '';
+                break;
             }
-            return value !== undefined ? value : '';
+        }
+        return value;
+    }
+
+    escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // Render content with data
+    renderContent(content, data) {
+        // 1. Process @for first!
+        let rendered = this.processForLoops(content, data);
+
+        // 2. Replace @if, @foreach, etc. first so loop-scoped variables remain available.
+        rendered = this.processConditionals(rendered, data);
+        rendered = this.processLoops(rendered, data);
+
+        // 3. Raw output first (Laravel-style): {!! variable !!}
+        rendered = rendered.replace(/\{!!\s*([^}]+)\s*!!\}/g, (match, variable) => {
+            const value = this.resolveVariable(variable, data);
+            return value !== undefined ? String(value) : '';
+        });
+
+        // 4. Escaped output (Laravel-style default): {{ variable }}
+        rendered = rendered.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, variable) => {
+            const value = this.resolveVariable(variable, data);
+            return this.escapeHtml(value !== undefined ? String(value) : '');
         });
 
         return rendered;
@@ -135,32 +182,6 @@ class View {
         return value;
     }
 
-    // Render content with data
-    renderContent(content, data) {
-        // 1. Process @for first!
-        let rendered = this.processForLoops(content, data);
-
-        // 2. Replace @if, @foreach, etc. first so loop-scoped variables remain available.
-        rendered = this.processConditionals(rendered, data);
-        rendered = this.processLoops(rendered, data);
-
-        // 3. Replace remaining {{ ... }} after loops/conditionals have expanded.
-        rendered = rendered.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, variable) => {
-            const keys = variable.trim().split('.');
-            let value = data;
-            for (let key of keys) {
-                if (value && typeof value === 'object' && key in value) {
-                    value = value[key];
-                } else {
-                    value = '';
-                    break;
-                }
-            }
-            return value !== undefined ? value : '';
-        });
-
-        return rendered;
-    }
 
     // Add support for @for(...) ... @endfor
     processForLoops(template, data) {

@@ -3,11 +3,21 @@ class App {
         // No need to create new instances, use global ones
     }
 
+    static liveValidationTimers = {};
+    static providers = [];
+    static plugins = [];
+
     // Initialize the application
     static init() {
         window.App = new App();
         window.View = window.View || new View();
         window.Api = window.Api || new Api();
+        window.Container = window.Container || new ServiceContainer();
+        window.AppStore = window.AppStore || new Store({});
+
+        App.registerCoreServices();
+        App.bootProviders();
+        App.installPlugins();
 
         // Initialize router
         window.AppRouter.init();
@@ -19,6 +29,69 @@ class App {
         App.setupEventListeners();
 
         console.log('Custom Framework initialized');
+    }
+
+    static registerCoreServices() {
+        if (!window.Container || typeof window.Container.singleton !== 'function') {
+            return;
+        }
+
+        if (!window.Container.has('router')) {
+            window.Container.singleton('router', () => window.AppRouter);
+        }
+        if (!window.Container.has('api')) {
+            window.Container.singleton('api', () => window.Api);
+        }
+        if (!window.Container.has('view')) {
+            window.Container.singleton('view', () => window.View);
+        }
+        if (!window.Container.has('validator')) {
+            window.Container.singleton('validator', () => window.Validator);
+        }
+        if (!window.Container.has('auth')) {
+            window.Container.singleton('auth', () => window.Auth);
+        }
+        if (!window.Container.has('store')) {
+            window.Container.singleton('store', () => window.AppStore);
+        }
+    }
+
+    static registerProvider(ProviderClass) {
+        App.providers.push(ProviderClass);
+    }
+
+    static bootProviders() {
+        App.providers.forEach((ProviderClass) => {
+            try {
+                const provider = new ProviderClass(window.App);
+                if (typeof provider.register === 'function') {
+                    provider.register();
+                }
+                if (typeof provider.boot === 'function') {
+                    provider.boot();
+                }
+            } catch (error) {
+                console.error('Provider boot failed:', error);
+            }
+        });
+    }
+
+    static use(plugin) {
+        App.plugins.push(plugin);
+    }
+
+    static installPlugins() {
+        App.plugins.forEach((plugin) => {
+            try {
+                if (plugin && typeof plugin.install === 'function') {
+                    plugin.install(window.App);
+                } else if (typeof plugin === 'function') {
+                    plugin(window.App);
+                }
+            } catch (error) {
+                console.error('Plugin install failed:', error);
+            }
+        });
     }
 
     // Configure the application
@@ -62,6 +135,29 @@ class App {
             }
         });
 
+        // Live validation for forms that opt in with data-validate-live="true"
+        document.addEventListener('input', (event) => {
+            const field = event.target;
+            if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement)) {
+                return;
+            }
+
+            const form = field.closest('form[data-validate-live="true"]');
+            if (!form || (!form.getAttribute('data-validate') && !form.getAttribute('data-request'))) {
+                return;
+            }
+
+            const debounceMs = Number(form.getAttribute('data-validate-debounce') || 250);
+            const timerKey = `${form.getAttribute('id') || 'form'}::${field.name}`;
+            if (App.liveValidationTimers[timerKey]) {
+                clearTimeout(App.liveValidationTimers[timerKey]);
+            }
+            App.liveValidationTimers[timerKey] = setTimeout(() => {
+                App.validateFieldLive(form, field);
+                delete App.liveValidationTimers[timerKey];
+            }, Number.isFinite(debounceMs) ? debounceMs : 250);
+        });
+
         // Handle link clicks
         document.addEventListener('click', (event) => {
             const link = event.target.closest('a');
@@ -83,6 +179,21 @@ class App {
                 }
             }
         });
+
+        // Prefetch route templates on intent (hover/focus), similar to modern SPA link prefetch.
+        const prefetchRouteFromLink = (event) => {
+            const link = event.target.closest('a[data-route]');
+            if (!link || !window.AppRouter || typeof window.AppRouter.findRoute !== 'function') {
+                return;
+            }
+            const routePath = link.getAttribute('data-route');
+            const route = window.AppRouter.findRoute(routePath, 'GET');
+            if (route && typeof window.AppRouter.prefetchRouteAssets === 'function') {
+                window.AppRouter.prefetchRouteAssets(route);
+            }
+        };
+        document.addEventListener('mouseover', prefetchRouteFromLink);
+        document.addEventListener('focusin', prefetchRouteFromLink);
 
         // Handle demo mobile menu toggle
         document.addEventListener('click', (event) => {
@@ -138,6 +249,7 @@ class App {
 
         window.addEventListener('hashchange', scheduleDemoMenuSync);
         scheduleDemoMenuSync();
+        App.scheduleCodeHighlight();
 
         // Docs page sidebar interactions: drawer + scroll spy
         document.addEventListener('click', (event) => {
@@ -201,6 +313,7 @@ class App {
         window.addEventListener('scroll', syncDocsSidebarActiveState, { passive: true });
         window.addEventListener('resize', syncDocsSidebarActiveState);
         requestAnimationFrame(syncDocsSidebarActiveState);
+        window.addEventListener('hashchange', () => App.scheduleCodeHighlight());
 
         // Handle API update triggers
         document.addEventListener('click', (event) => {
@@ -229,6 +342,27 @@ class App {
                 data[key] = value;
             }
 
+            const validationConfig = App.resolveValidationConfig(form);
+            if (validationConfig && window.Validator) {
+                const { rules: validationRules, messages: validationMessages } = validationConfig;
+                const validation = window.Validator.validate(data, validationRules, validationMessages);
+
+                if (validation.fails) {
+                    const targetSelector = form.getAttribute('data-target');
+                    App.renderValidationErrors(targetSelector, validation.errors);
+                    App.renderFieldValidationErrors(form, validation.errors);
+                    form.dispatchEvent(new CustomEvent('form-error', {
+                        detail: {
+                            type: 'validation',
+                            errors: validation.errors
+                        }
+                    }));
+                    return;
+                }
+            }
+
+            App.clearFieldValidationErrors(form);
+
             let response;
             switch (method.toUpperCase()) {
                 case 'GET':
@@ -252,11 +386,8 @@ class App {
             if (targetSelector) {
                 const element = document.querySelector(targetSelector);
                 if (element) {
-                    if (typeof response.data === 'string') {
-                        element.innerHTML = response.data;
-                    } else {
-                        element.innerHTML = JSON.stringify(response.data);
-                    }
+                    const allowHtml = form.getAttribute('data-response-format') === 'html';
+                    App.renderResponseContent(element, response.data, allowHtml);
                 }
             }
 
@@ -266,6 +397,225 @@ class App {
         } catch (error) {
             console.error('Form submission failed:', error);
             form.dispatchEvent(new CustomEvent('form-error', { detail: error }));
+        }
+    }
+
+    static parseJsonAttribute(rawValue, fallback = {}) {
+        try {
+            return JSON.parse(rawValue);
+        } catch (error) {
+            console.warn('Invalid JSON in data attribute:', rawValue);
+            return fallback;
+        }
+    }
+
+    static escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    static renderResponseContent(element, responseData, allowHtml = false) {
+        if (typeof responseData === 'string') {
+            if (allowHtml) {
+                element.innerHTML = responseData;
+                return;
+            }
+            element.textContent = responseData;
+            return;
+        }
+
+        element.innerHTML = '';
+        const pre = document.createElement('pre');
+        pre.className = 'api-pretty-json';
+        pre.textContent = JSON.stringify(responseData, null, 2);
+        element.appendChild(pre);
+    }
+
+    static renderValidationErrors(targetSelector, errors = {}) {
+        if (!targetSelector) {
+            return;
+        }
+        const element = document.querySelector(targetSelector);
+        if (!element) {
+            return;
+        }
+
+        const fields = Object.keys(errors);
+        if (!fields.length) {
+            element.innerHTML = '';
+            return;
+        }
+
+        const items = fields
+            .flatMap((field) => (errors[field] || []).map((msg) => {
+                const safeField = App.escapeHtml(field);
+                const safeMessage = App.escapeHtml(msg);
+                return `<li><span class="field">${safeField}</span><span class="msg">${safeMessage}</span></li>`;
+            }))
+            .join('');
+
+        element.innerHTML = `<ul class="validation-errors">${items}</ul>`;
+    }
+
+    static scheduleCodeHighlight() {
+        // Route rendering is async; run after paint cycles.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => App.highlightCodeBlocks());
+        });
+    }
+
+    static highlightCodeBlocks() {
+        if (!window.hljs) {
+            return;
+        }
+
+        const blocks = document.querySelectorAll('pre.docs-code');
+        blocks.forEach((pre) => {
+            let code = pre.querySelector('code');
+            if (!code) {
+                code = document.createElement('code');
+                code.textContent = pre.textContent;
+                pre.textContent = '';
+                pre.appendChild(code);
+            }
+            window.hljs.highlightElement(code);
+        });
+    }
+
+    static validateFieldLive(form, field) {
+        if (!window.Validator) {
+            return;
+        }
+
+        const validationConfig = App.resolveValidationConfig(form);
+        if (!validationConfig) {
+            return;
+        }
+        const { rules, messages } = validationConfig;
+        const fieldRules = rules[field.name];
+
+        if (!fieldRules) {
+            field.classList.remove('is-valid', 'is-invalid');
+            return;
+        }
+
+        const payload = { [field.name]: field.value };
+        const validation = window.Validator.validate(payload, { [field.name]: fieldRules }, messages);
+        const fieldErrors = validation.errors[field.name] || [];
+
+        if (fieldErrors.length) {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+            field.setAttribute('aria-invalid', 'true');
+            App.setFieldErrorMessage(field, fieldErrors[0]);
+        } else {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            field.setAttribute('aria-invalid', 'false');
+            App.setFieldErrorMessage(field, '');
+        }
+
+        // Keep target panel synced with current invalid fields during live validation.
+        const allFieldErrors = {};
+        const inputs = form.querySelectorAll('input[name], textarea[name], select[name]');
+        inputs.forEach((input) => {
+            const name = input.getAttribute('name');
+            if (!name || !rules[name]) {
+                return;
+            }
+            const result = window.Validator.validate({ [name]: input.value }, { [name]: rules[name] }, messages);
+            if (result.errors[name] && result.errors[name].length) {
+                allFieldErrors[name] = result.errors[name];
+            }
+        });
+
+        const targetSelector = form.getAttribute('data-target');
+        App.renderValidationErrors(targetSelector, allFieldErrors);
+        App.renderFieldValidationErrors(form, allFieldErrors);
+    }
+
+    static resolveValidationConfig(form) {
+        const requestClassName = form.getAttribute('data-request');
+        if (requestClassName && typeof window[requestClassName] === 'function') {
+            try {
+                const request = new window[requestClassName]();
+                const rules = typeof request.rules === 'function' ? request.rules() : {};
+                const messages = typeof request.messages === 'function' ? request.messages() : {};
+                return { rules, messages };
+            } catch (error) {
+                console.error(`Failed to instantiate request class "${requestClassName}"`, error);
+            }
+        }
+
+        const validationRulesRaw = form.getAttribute('data-validate');
+        if (!validationRulesRaw) {
+            return null;
+        }
+
+        const validationMessagesRaw = form.getAttribute('data-validate-messages') || '{}';
+        return {
+            rules: App.parseJsonAttribute(validationRulesRaw, {}),
+            messages: App.parseJsonAttribute(validationMessagesRaw, {})
+        };
+    }
+
+    static renderFieldValidationErrors(form, errors = {}) {
+        const inputs = form.querySelectorAll('input[name], textarea[name], select[name]');
+        inputs.forEach((input) => {
+            const name = input.getAttribute('name');
+            const fieldErrors = (name && errors[name]) ? errors[name] : [];
+
+            if (fieldErrors.length) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                input.setAttribute('aria-invalid', 'true');
+                App.setFieldErrorMessage(input, fieldErrors[0]);
+            } else {
+                if (!input.classList.contains('is-valid')) {
+                    input.classList.remove('is-invalid');
+                }
+                input.setAttribute('aria-invalid', 'false');
+                App.setFieldErrorMessage(input, '');
+            }
+        });
+    }
+
+    static clearFieldValidationErrors(form) {
+        const inputs = form.querySelectorAll('input[name], textarea[name], select[name]');
+        inputs.forEach((input) => {
+            input.classList.remove('is-invalid');
+            input.setAttribute('aria-invalid', 'false');
+            App.setFieldErrorMessage(input, '');
+        });
+    }
+
+    static setFieldErrorMessage(input, message) {
+        const name = input.getAttribute('name');
+        if (!name) {
+            return;
+        }
+
+        let holder = input.parentElement ? input.parentElement.querySelector(`[data-field-error="${name}"]`) : null;
+        if (!holder) {
+            holder = document.createElement('small');
+            holder.setAttribute('data-field-error', name);
+            holder.className = 'field-error-message';
+            if (input.id) {
+                holder.id = `${input.id}-error`;
+            }
+            if (input.parentElement) {
+                input.parentElement.appendChild(holder);
+            }
+        }
+
+        holder.textContent = message || '';
+        holder.style.display = message ? 'block' : 'none';
+        if (holder.id) {
+            input.setAttribute('aria-describedby', holder.id);
         }
     }
 

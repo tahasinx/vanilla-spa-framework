@@ -8,6 +8,10 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 - ✅ **Laravel-like Routing**: Define routes similar to Laravel's web.php
 - ✅ **Route Groups & Named Routes**: Use `prefix`, `namePrefix`, and `route(name, params)`
 - ✅ **Middleware Pipeline**: Add per-route guards like `auth` and `guest`
+- ✅ **Validation Layer**: Laravel-like rules for forms via `data-validate`
+- ✅ **Service Container & Providers**: Register services and boot providers
+- ✅ **Centralized Store**: Lightweight shared state management
+- ✅ **Plugin System**: Install app plugins with `App.use(...)`
 - ✅ **Template System**: Blade-like syntax (`{{ variable }}`, `@if`, `@foreach`, `@for`, `@extends`, `@section`, `@yield`, `@include`)
 - ✅ **API Integration**: Easy API calls with DOM updates
 - ✅ **Pure JavaScript**: No build tools or Node.js required
@@ -19,7 +23,9 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 
 1. **Clone or download** the framework files
 2. **Run a local server** (do not use `file://` protocol)
-   - Example: `python -m http.server 5500` | `vs code live server extensions`
+   - Recommended: `python -m http.server 5500 --bind 127.0.0.1`
+   - Open: `http://127.0.0.1:5500`
+   - Alternative: `python -m http.server 5500` | `vs code live server extensions`
 3. **Open `index.html`** in your browser
 4. **Start developing** with the included structure
 
@@ -34,6 +40,12 @@ vanilla-spa-framework/
 │       ├── Controller.js     # Base controller
 │       ├── View.js          # Template rendering
 │       ├── Api.js           # API integration
+│       ├── Response.js      # Laravel-inspired response() helper
+│       ├── Validator.js     # Form/request validation rules
+│       ├── FormRequest.js   # Reusable request validation classes
+│       ├── ServiceContainer.js
+│       ├── ServiceProvider.js
+│       ├── Store.js
 │       ├── Auth.js          # Frontend auth state service
 │       └── App.js           # Main application
 ├── routes/
@@ -41,6 +53,17 @@ vanilla-spa-framework/
 ├── controllers/
 │   ├── HomeController.js    # Home page controller
 │   └── ApiController.js     # API controller
+├── providers/
+│   └── MetricsProvider.js
+├── plugins/
+│   └── LoggerPlugin.js
+├── tests/
+│   ├── run-tests.html
+│   ├── test-runner.js
+│   └── framework.tests.js
+├── cli/
+│   └── scaffold.sh
+├── CHANGELOG.md
 └── resources/
     ├── views/               # Template files
     │   ├── welcome.html
@@ -176,10 +199,10 @@ class ApiController extends Controller {
     async inspire() {
         try {
             const response = await fetch('https://dummyjson.com/products');
-            const text = await response.text();
-            return { quote: text };
+            const json = await response.json();
+            return response().json({ products: json }, 200);
         } catch (error) {
-            return { error: 'Failed to fetch external API' };
+            return response().error('Failed to fetch external API', 502);
         }
     }
 }
@@ -188,7 +211,47 @@ window.ApiController = ApiController;
 
 - If your controller returns a string, it is treated as HTML.
 - If it returns an object/array, it is treated as JSON.
-- If it returns `{status, data}`, it is treated as a full response.
+- If it returns `{status, data, type}`, it is treated as a full response.
+
+Laravel-inspired response helper:
+
+```javascript
+response().json({ ok: true }, 200);
+response().html('<strong>Saved</strong>', 200);
+response().error('Validation failed', 422);
+```
+
+## Container, Providers, and Plugins
+
+```javascript
+class MetricsProvider extends ServiceProvider {
+  register() {
+    window.Container.singleton('metrics', () => ({
+      track: (eventName) => console.log('track', eventName)
+    }));
+  }
+}
+
+App.registerProvider(MetricsProvider);
+
+App.use({
+  install() {
+    console.log('Plugin installed');
+  }
+});
+```
+
+Real sample files are included:
+
+- `providers/MetricsProvider.js`
+- `plugins/LoggerPlugin.js`
+
+Resolve services later:
+
+```javascript
+const metrics = window.Container.make('metrics');
+metrics.track('docs-viewed');
+```
 
 ## Templates
 
@@ -214,6 +277,8 @@ Create templates in `resources/views/` with Laravel-like syntax:
 
 **Note:** For `@for` loops, use `${i}` for loop variables inside the loop body. Use `{{ variable }}` for data context variables elsewhere. This is the most robust and JS-like approach for frontend template engines.
 
+By default, `{{ variable }}` is HTML-escaped (safe output). Use `{!! variable !!}` only for trusted HTML fragments.
+
 ## API Integration
 
 Make API calls and update DOM elements:
@@ -229,6 +294,16 @@ async loadInspiration() {
 <button data-api-url="/api/inspire" data-target="#api-result">
     Load Inspiration
 </button>
+```
+
+JSON responses are now rendered as pretty-printed blocks in target elements for readability.
+For long payloads, set a bounded response container:
+
+```css
+.api-result {
+  max-height: 320px;
+  overflow: auto;
+}
 ```
 
 ## External API & CORS Issues
@@ -303,6 +378,117 @@ this.api.renderTemplate('#users', 'user-list', '/api/users');
     <button type="submit">Submit</button>
 </form>
 <div id="result"></div>
+```
+
+For real-time field feedback, enable live validation:
+
+```html
+<form
+  data-action="/api/users"
+  data-method="POST"
+  data-target="#result"
+  data-validate-live="true"
+  data-validate-debounce="250"
+  data-validate='{"name":"required|min:3","email":"required|email"}'
+>
+  <input type="text" name="name" />
+  <input type="email" name="email" />
+  <button type="submit">Submit</button>
+</form>
+```
+
+`data-validate-debounce` is optional (milliseconds) and defaults to `250`.
+For live-only demos, you can remove the submit button and keep a muted response placeholder (for example: `Response`).
+
+## Validation
+
+Add Laravel-like validation rules directly on forms:
+
+```html
+<form
+  data-action="/api/users"
+  data-method="POST"
+  data-target="#result"
+  data-validate='{"name":"required|min:3|max:40","email":"required|email"}'
+  data-validate-messages='{"name.required":"Please enter your name"}'
+>
+  <input type="text" name="name" />
+  <input type="email" name="email" />
+  <button type="submit">Submit</button>
+</form>
+<div id="result"></div>
+```
+
+When validation fails, the framework:
+
+- Stops API submission
+- Dispatches `form-error` with validation details
+- Renders field errors into your `data-target` element
+- Renders first validation error below each input field
+
+Programmatic usage:
+
+```javascript
+const result = Validator.validate(
+  { email: 'john@example.com' },
+  { email: 'required|email' }
+);
+
+if (result.fails) {
+  console.log(result.errors);
+}
+```
+
+Supported rules: `required`, `email`, `min`, `max`, `numeric`, `url`, `in`.
+
+FormRequest-style usage:
+
+```javascript
+class DemoSignupRequest extends FormRequest {
+  rules() {
+    return {
+      name: 'required|min:3',
+      email: 'required|email'
+    };
+  }
+
+  messages() {
+    return {
+      'name.required': 'Name is required.'
+    };
+  }
+}
+window.DemoSignupRequest = DemoSignupRequest;
+```
+
+```html
+<form data-request="DemoSignupRequest" data-target="#result"></form>
+```
+
+## Centralized Store
+
+```javascript
+window.AppStore.setState({ user: { name: 'Dev' } });
+const state = window.AppStore.getState();
+
+const unsubscribe = window.AppStore.subscribe((nextState) => {
+  console.log('Store changed', nextState);
+});
+```
+
+## Test Suite
+
+Open `tests/run-tests.html` in your local server to run framework unit tests.
+Current tests cover validator, router named routes, store updates, and container singleton behavior.
+
+## CLI Scaffolding
+
+Use the scaffold script to generate boilerplate files:
+
+```bash
+./cli/scaffold.sh controller ProfileController
+./cli/scaffold.sh view profile
+./cli/scaffold.sh request CreateProfileRequest
 ```
 
 ## Configuration

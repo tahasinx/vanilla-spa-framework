@@ -9,7 +9,13 @@
 
 // Home routes
 AppRouter.get('/', 'HomeController', 'index', { name: 'home' });
-AppRouter.get('/docs', 'HomeController', 'docs', { name: 'docs' });
+AppRouter.get('/docs', 'HomeController', 'docs', {
+    name: 'docs',
+    // Single prefetch example (keep most routes simple).
+    prefetch: {
+        templates: [{ name: 'docs', path: 'resources/views/docs.html' }]
+    }
+});
 
 // Demo routes
 AppRouter.group({ prefix: '/demo', namePrefix: 'demo.' }, () => {
@@ -60,7 +66,5 @@ AppRouter.group({ prefix: '/api', namePrefix: 'api.' }, () => {
 // AppRouter.get('/admin/users', 'AdminController', 'users');
 // AppRouter.get('/admin/posts', 'AdminController', 'posts');
 
-// Catch-all route for 404 (dummy placeholder)
-// Keep this disabled until ErrorController.notFound is created. If enabled now,
-// unresolved paths may trigger a missing-controller runtime error.
-// AppRouter.get('*', 'ErrorController', 'notFound');
+// Catch-all route for 404
+AppRouter.get('*', 'ErrorController', 'notFound', { name: 'errors.404' });

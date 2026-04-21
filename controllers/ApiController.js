@@ -5,10 +5,10 @@ class ApiController extends Controller {
 
     // Get all users (example)
     async getUsers() {
-        return [
+        return response().json([
             { id: 1, name: 'John Doe', email: 'john@example.com' },
             { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
-        ];
+        ]);
     }
 
     // Example: Fetch from external API and return JSON
@@ -16,9 +16,9 @@ class ApiController extends Controller {
         try {
             const response = await fetch('https://dummyjson.com/products');
             const json = await response.json();
-            return { products: json };
+            return window.response().json({ products: json }, 200);
         } catch (error) {
-            return { error: 'Failed to fetch external API' };
+            return window.response().error('Failed to fetch external API', 502);
         }
     }
 

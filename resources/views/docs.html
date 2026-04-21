@@ -20,6 +20,8 @@
             <a href="javascript:void(0)" data-docs-target="syntax">Template Syntax</a>
             <a href="javascript:void(0)" data-docs-target="api">API Integration</a>
             <a href="javascript:void(0)" data-docs-target="forms">Form Handling</a>
+            <a href="javascript:void(0)" data-docs-target="validation">Validation</a>
+            <a href="javascript:void(0)" data-docs-target="platform">Platform Features</a>
             <a href="javascript:void(0)" data-docs-target="config">Configuration</a>
             <a href="javascript:void(0)" data-docs-target="browser">Browser Support</a>
             <a href="javascript:void(0)" data-docs-target="workflow">Development Workflow</a>
@@ -34,8 +36,9 @@
                     <li>Open <code>index.html</code> in your browser.</li>
                     <li>Define routes in <code>routes/web.js</code> and build features.</li>
                 </ol>
-                <pre class="docs-code"># Example local server
-python -m http.server 5500</pre>
+                <pre class="docs-code"># Recommended local server command (Windows-friendly)
+python -m http.server 5500 --bind 127.0.0.1</pre>
+                <p class="docs-tip">Open <code>http://127.0.0.1:5500</code>. Alternative: <code>python -m http.server 5500</code> if localhost resolves correctly on your machine.</p>
             </section>
 
             <section class="docs-section" id="structure">
@@ -48,6 +51,11 @@ python -m http.server 5500</pre>
 │   ├── Controller.js
 │   ├── View.js
 │   ├── Api.js
+│   ├── Validator.js
+│   ├── FormRequest.js
+│   ├── ServiceContainer.js
+│   ├── ServiceProvider.js
+│   ├── Store.js
 │   ├── Auth.js
 │   └── App.js
 ├── routes/web.js
@@ -150,6 +158,12 @@ Blade Template Engine
                 <h3>Variables</h3>
                 <pre class="docs-code">&lt;h1&gt;{{ title }}&lt;/h1&gt;
 &lt;p&gt;{{ user.name }}&lt;/p&gt;</pre>
+                <p class="docs-tip">Laravel-inspired output: <code>{{ ... }}</code> escapes HTML by default. Use <code>{!! ... !!}</code> only for trusted HTML fragments.</p>
+                <pre class="docs-code">&lt;!-- Escaped output (safe default) --&gt;
+&lt;p&gt;{{ article.title }}&lt;/p&gt;
+
+&lt;!-- Raw output (trusted content only) --&gt;
+&lt;div&gt;{!! article.renderedHtml !!}&lt;/div&gt;</pre>
 
                 <h3>Conditionals</h3>
                 <pre class="docs-code">&#64;if(user.isAdmin)
@@ -183,6 +197,18 @@ const created = await this.api.post('/api/users', { name: 'John' });
 // DOM helper methods
 this.api.updateElement('#users', '/api/users');
 this.api.renderTemplate('#users', 'user-list', '/api/users');</pre>
+                <h3>Laravel-inspired Response Helper</h3>
+                <pre class="docs-code">// framework/core/Response.js provides:
+response().json({ ok: true }, 200);
+response().html('&lt;strong&gt;Saved&lt;/strong&gt;', 200);
+response().error('Failed to save', 422);
+
+// In controllers:
+async getUsers() {
+  return response().json([
+    { id: 1, name: 'John Doe' }
+  ]);
+}</pre>
 
                 <h3>Live API Examples</h3>
                 <div class="demo-buttons">
@@ -209,6 +235,121 @@ https://corsproxy.io/?https://example.com/api</pre>
 &lt;/form&gt;
 &lt;div id="result"&gt;&lt;/div&gt;</pre>
                 <p class="docs-tip">You can listen to <code>form-success</code> and <code>form-error</code> events on the form.</p>
+            </section>
+
+            <section class="docs-section" id="validation">
+                <h2>Validation (Laravel-like Rules)</h2>
+                <p>Use <code>data-validate</code> on forms to run client-side validation before API calls.</p>
+                <pre class="docs-code">&lt;form
+  data-action="/api/users"
+  data-method="POST"
+  data-target="#result"
+  data-validate='{"name":"required|min:3|max:40","email":"required|email"}'
+  data-validate-messages='{"name.required":"Please enter your name"}'
+&gt;
+  &lt;input name="name" /&gt;
+  &lt;input name="email" /&gt;
+  &lt;button type="submit"&gt;Submit&lt;/button&gt;
+&lt;/form&gt;
+&lt;div id="result"&gt;&lt;/div&gt;</pre>
+                <pre class="docs-code">// Programmatic validation
+const result = Validator.validate(
+  { email: 'john@example.com' },
+  { email: 'required|email' }
+);
+
+if (result.fails) {
+  console.log(result.errors);
+}</pre>
+                <pre class="docs-code">// FormRequest-style validation
+class DemoSignupRequest extends FormRequest {
+  rules() {
+    return {
+      name: 'required|min:3',
+      email: 'required|email'
+    };
+  }
+
+  messages() {
+    return {
+      'name.required': 'Name is required.'
+    };
+  }
+}
+window.DemoSignupRequest = DemoSignupRequest;
+
+// In HTML form: data-request="DemoSignupRequest"</pre>
+                <h3>Live Validation Demo</h3>
+                <p>Set <code>data-validate-live="true"</code> to validate while users type and auto-highlight fields.</p>
+                <pre class="docs-code">&lt;form
+  data-action="/api/users"
+  data-method="POST"
+  data-target="#docs-validation-result"
+  data-validate-live="true"
+  data-validate-debounce="250"
+  data-validate='{"name":"required|min:3","email":"required|email"}'
+&gt;
+  &lt;input name="name" placeholder="Name" /&gt;
+  &lt;input name="email" placeholder="Email" /&gt;
+&lt;/form&gt;</pre>
+                <form
+                    class="docs-validation-form"
+                    data-action="/api/users"
+                    data-method="POST"
+                    data-target="#docs-validation-result"
+                    data-validate-live="true"
+                    data-validate-debounce="250"
+                    data-validate='{"name":"required|min:3","email":"required|email"}'>
+                    <div class="form-group">
+                        <label for="docs-validation-name">Name</label>
+                        <input id="docs-validation-name" type="text" name="name" placeholder="Enter at least 3 characters">
+                    </div>
+                    <div class="form-group">
+                        <label for="docs-validation-email">Email</label>
+                        <input id="docs-validation-email" type="email" name="email" placeholder="name@example.com">
+                    </div>
+                </form>
+                <div id="docs-validation-result" class="api-result">
+                    <p class="response-placeholder">Response</p>
+                </div>
+                <p class="docs-tip validation-tip">Field-level errors render below inputs. Use <code>data-validate-debounce</code> (ms) to reduce noisy validation while typing. Supported rules: <code>required</code>, <code>email</code>, <code>min</code>, <code>max</code>, <code>numeric</code>, <code>url</code>, <code>in</code>.</p>
+            </section>
+
+            <section class="docs-section" id="platform">
+                <h2>Platform Features (10/10 Track)</h2>
+                <h3>Service Container + Providers</h3>
+                <pre class="docs-code">class MetricsProvider extends ServiceProvider {
+  register() {
+    window.Container.singleton('metrics', () => ({
+      track: (eventName) => console.log('track', eventName)
+    }));
+  }
+}
+
+App.registerProvider(MetricsProvider);</pre>
+
+                <h3>Plugin System</h3>
+                <pre class="docs-code">App.use({
+  install() {
+    console.log('Plugin installed');
+  }
+});</pre>
+
+                <h3>Centralized Store</h3>
+                <pre class="docs-code">window.AppStore.setState({ user: { name: 'Dev' } });
+window.AppStore.subscribe((state) => {
+  console.log('Store changed', state);
+});</pre>
+
+                <h3>Tests + CLI Scaffolding</h3>
+                <pre class="docs-code">// Run tests in browser:
+tests/run-tests.html
+
+// Generate boilerplate:
+./cli/scaffold.sh controller ProfileController
+./cli/scaffold.sh view profile
+./cli/scaffold.sh request CreateProfileRequest</pre>
+                <p class="docs-tip">These features provide the final step toward plugin-ready architecture, maintainable growth, and repeatable development workflow.</p>
             </section>
 
             <section class="docs-section" id="config">

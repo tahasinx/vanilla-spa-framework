@@ -109,12 +109,15 @@ class Api {
             const element = document.querySelector(selector);
 
             if (element) {
-                if (response.type === 'html') {
+                const allowHtml = options.responseType === 'html' || response.type === 'html';
+                if (window.App && typeof window.App.constructor.renderResponseContent === 'function') {
+                    window.App.constructor.renderResponseContent(element, response.data, allowHtml);
+                } else if (allowHtml && typeof response.data === 'string') {
                     element.innerHTML = response.data;
                 } else if (typeof response.data === 'string') {
-                    element.innerHTML = response.data;
+                    element.textContent = response.data;
                 } else {
-                    element.innerHTML = JSON.stringify(response.data);
+                    element.innerHTML = `<pre class="api-pretty-json">${JSON.stringify(response.data, null, 2)}</pre>`;
                 }
             }
 
@@ -132,10 +135,13 @@ class Api {
             const element = document.querySelector(selector);
 
             if (element) {
-                if (typeof response.data === 'string') {
-                    element.innerHTML += response.data;
+                const allowHtml = options.responseType === 'html' || response.type === 'html';
+                if (allowHtml && typeof response.data === 'string') {
+                    element.insertAdjacentHTML('beforeend', response.data);
+                } else if (typeof response.data === 'string') {
+                    element.append(document.createTextNode(response.data));
                 } else {
-                    element.innerHTML += JSON.stringify(response.data);
+                    element.innerHTML += `<pre class="api-pretty-json">${JSON.stringify(response.data, null, 2)}</pre>`;
                 }
             }
 

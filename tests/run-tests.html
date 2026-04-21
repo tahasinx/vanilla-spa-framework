@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Framework Tests</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 24px; background: #0f172a; color: #e2e8f0; }
+        .passed { color: #4ade80; }
+        .failed { color: #f87171; }
+        h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div id="test-results">Running tests...</div>
+
+    <script src="../framework/core/Router.js"></script>
+    <script src="../framework/core/Controller.js"></script>
+    <script src="../framework/core/View.js"></script>
+    <script src="../framework/core/Api.js"></script>
+    <script src="../framework/core/Validator.js"></script>
+    <script src="../framework/core/FormRequest.js"></script>
+    <script src="../framework/core/ServiceContainer.js"></script>
+    <script src="../framework/core/ServiceProvider.js"></script>
+    <script src="../framework/core/Store.js"></script>
+    <script src="../framework/core/Auth.js"></script>
+    <script src="../framework/core/App.js"></script>
+    <script src="../controllers/HomeController.js"></script>
+    <script src="../controllers/DemoController.js"></script>
+    <script src="../controllers/ApiController.js"></script>
+    <script src="../controllers/ErrorController.js"></script>
+    <script src="../routes/web.js"></script>
+    <script src="./test-runner.js"></script>
+    <script src="./framework.tests.js"></script>
+</body>
+</html>
