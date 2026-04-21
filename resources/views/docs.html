@@ -63,7 +63,7 @@ python -m http.server 5500</pre>
                 <pre class="docs-code">// Page routes
 AppRouter.get('/', 'HomeController', 'index');
 AppRouter.get('/docs', 'HomeController', 'docs');
-AppRouter.get('/contact', 'HomeController', 'contact');
+AppRouter.get('/demo', 'DemoController', 'index');
 
 // API routes
 AppRouter.get('/api/users', 'ApiController', 'getUsers');
@@ -86,7 +86,7 @@ AppRouter.get('/api/inspire', 'ApiController', 'inspire');</pre>
 }
 window.HomeController = HomeController;</pre>
                 <div class="docs-actions">
-                    <a href="/#/about" data-route="/about">See Controller-driven About Page</a>
+                    <a href="/#/demo/about" data-route="/demo/about">See Controller-driven Demo About Page</a>
                 </div>
             </section>
 
@@ -103,7 +103,7 @@ Blade Template Engine
   &#64;include('alert')
 &#64;endsection</pre>
                 <div class="docs-actions">
-                    <a href="/#/blade" data-route="/blade">Run Real Blade Demo</a>
+                    <a href="/#/demo/blog" data-route="/demo/blog">Run Live Demo Templates</a>
                 </div>
             </section>
 
@@ -203,7 +203,7 @@ https://corsproxy.io/?https://example.com/api</pre>
                 </ol>
                 <nav class="docs-nav">
                     <a href="/#/" data-route="/">Back to Home</a>
-                    <a href="/#/contact" data-route="/contact">Need Help? Contact</a>
+                    <a href="/#/demo/contact" data-route="/demo/contact">Need Help? Demo Contact</a>
                 </nav>
             </section>
         </main>

@@ -17,27 +17,10 @@ class HomeController extends Controller {
             ]
         };
 
-        if (!this.view.templates['home']) {
-            await this.view.loadTemplate('home', 'resources/views/home.html');
+        if (!this.view.templates['welcome']) {
+            await this.view.loadTemplate('welcome', 'resources/views/welcome.html');
         }
-        this.view.updateElement('#app', 'home', data);
-    }
-
-    // About page
-    async about() {
-        const data = {
-            title: 'About Us',
-            content: 'This is a custom frontend framework inspired by Laravel but built with pure JavaScript.',
-            team: [
-                { name: 'Developer 1', role: 'Lead Developer' },
-                { name: 'Developer 2', role: 'Frontend Developer' }
-            ]
-        };
-
-        if (!this.view.templates['about']) {
-            await this.view.loadTemplate('about', 'resources/views/about.html');
-        }
-        this.view.updateElement('#app', 'about', data);
+        this.view.updateElement('#app', 'welcome', data);
     }
 
     // Documentation page
@@ -53,29 +36,6 @@ class HomeController extends Controller {
         this.view.updateElement('#app', 'docs', data);
     }
 
-    // Contact page
-    async contact() {
-        const data = {
-            title: 'Contact Us',
-            email: 'contact@example.com',
-            phone: '+1 234 567 8900'
-        };
-
-        if (!this.view.templates['contact']) {
-            await this.view.loadTemplate('contact', 'resources/views/contact.html');
-        }
-        this.view.updateElement('#app', 'contact', data);
-    }
-
-    // Blade page
-    async blade() {
-        // Preload all needed templates with correct keys
-        await this.view.loadTemplate('layout', 'resources/views/master/layout.html');
-        await this.view.loadTemplate('blade', 'resources/views/master/blade.html');
-        await this.view.loadTemplate('alert', 'resources/views/master/alert.html');
-        // Render with data for the partial
-        this.view.updateElement('#app', 'blade', { message: 'This is an included alert!' });
-    }
 }
 
 // Expose globally

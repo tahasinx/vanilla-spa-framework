@@ -39,20 +39,23 @@ vanilla-spa-framework/
 │   └── ApiController.js     # API controller
 └── resources/
     ├── views/               # Template files
-    │   ├── home.html
-    │   ├── about.html
-    │   ├── contact.html
-    │   └── master/
-    │       ├── layout.html
-    │       ├── blade.html
-    │       └── alert.html
+    │   ├── welcome.html
+    │   ├── docs.html
+    │   └── demo/
+    │       ├── home.html
+    │       ├── about.html
+    │       ├── services.html
+    │       ├── blog.html
+    │       ├── blog-view.html
+    │       ├── contact.html
+    │       └── master/layout.html
     └── css/
         └── app.css          # Styles
 ```
 
-## Blade-like Layout Example
+## Demo Layout Example
 
-### 1. **Master Layout** (`resources/views/master/layout.html`)
+### 1. **Master Layout** (`resources/views/demo/master/layout.html`)
 ```html
 <!DOCTYPE html>
 <html>
@@ -73,47 +76,33 @@ vanilla-spa-framework/
 </html>
 ```
 
-### 2. **Partial Include** (`resources/views/master/alert.html`)
+### 2. **Demo View** (`resources/views/demo/home.html`)
 ```html
-<div class="alert">
-    <strong>{{ message }}</strong>
-</div>
-```
-
-### 3. **Blade View** (`resources/views/master/blade.html`)
-```html
-@extends('layout')
-@section('title')
-Blade Template Engine
-@endsection
-
+@extends('demo.layout')
 @section('content')
-  <h2>Blade Page</h2>
-  <p>This is the blade page content. That is inspired by Laravel like template engine.</p>
-  @include('alert')
+  <h1>{{ pageHeading }}</h1>
 @endsection
 ```
 
-### 4. **Controller Function** (`controllers/HomeController.js`)
+### 3. **Controller Function** (`controllers/DemoController.js`)
 ```js
-class HomeController extends Controller {
+class DemoController extends Controller {
     // ...
-    async blade() {
-        await this.view.loadTemplate('layout', 'resources/views/master/layout.html');
-        await this.view.loadTemplate('blade', 'resources/views/master/blade.html');
-        await this.view.loadTemplate('alert', 'resources/views/master/alert.html');
-        this.view.updateElement('#app', 'blade', { message: 'This is an included alert!' });
+    async index() {
+        await this.view.loadTemplate('demo.layout', 'resources/views/demo/master/layout.html');
+        await this.view.loadTemplate('demo_home', 'resources/views/demo/home.html');
+        this.view.updateElement('#app', 'demo_home', { pageHeading: 'Surface Deals' });
     }
 }
-window.HomeController = HomeController;
+window.DemoController = DemoController;
 ```
 
-### 5. **Route** (`routes/web.js`)
+### 4. **Route** (`routes/web.js`)
 ```js
-AppRouter.get('/blade', 'HomeController', 'blade');
+AppRouter.get('/demo', 'DemoController', 'index');
 ```
 
-**Now, visiting `/#/blade` will render the blade page using the master layout, with a section for the title, a section for the content, and an included alert partial.**
+**Now, visiting `/#/demo` renders the demo page using the demo master layout.**
 
 ---
 
@@ -126,8 +115,8 @@ AppRouter.get('/blade', 'HomeController', 'blade');
 ```javascript
 // routes/web.js
 AppRouter.get('/', 'HomeController', 'index');
-AppRouter.get('/about', 'HomeController', 'about');
-AppRouter.get('/contact', 'HomeController', 'contact');
+AppRouter.get('/docs', 'HomeController', 'docs');
+AppRouter.get('/demo', 'DemoController', 'index');
 AppRouter.get('/api/inspire', 'ApiController', 'inspire'); // Example API route
 // ...add more routes as needed
 ```
@@ -163,7 +152,7 @@ window.ApiController = ApiController;
 Create templates in `resources/views/` with Laravel-like syntax:
 
 ```html
-<!-- home.html -->
+<!-- welcome.html -->
 <div class="container">
     <h1>{{ title }}</h1>
     @foreach(users as user)
