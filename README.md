@@ -6,11 +6,14 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 
 - ✅ **Unified Routing**: All routes (pages, APIs) handled in JS, auto-detects HTML/JSON
 - ✅ **Laravel-like Routing**: Define routes similar to Laravel's web.php
+- ✅ **Route Groups & Named Routes**: Use `prefix`, `namePrefix`, and `route(name, params)`
+- ✅ **Middleware Pipeline**: Add per-route guards like `auth` and `guest`
 - ✅ **Template System**: Blade-like syntax (`{{ variable }}`, `@if`, `@foreach`, `@for`, `@extends`, `@section`, `@yield`, `@include`)
 - ✅ **API Integration**: Easy API calls with DOM updates
 - ✅ **Pure JavaScript**: No build tools or Node.js required
 - ✅ **Controller Pattern**: Organize code with controllers
 - ✅ **View Rendering**: Template rendering with data binding
+- ✅ **Frontend Auth Service**: `Auth.check()`, `Auth.login()`, `Auth.logout()`, `Auth.user()`
 
 ## Quick Start
 
@@ -31,6 +34,7 @@ vanilla-spa-framework/
 │       ├── Controller.js     # Base controller
 │       ├── View.js          # Template rendering
 │       ├── Api.js           # API integration
+│       ├── Auth.js          # Frontend auth state service
 │       └── App.js           # Main application
 ├── routes/
 │   └── web.js               # Route definitions (all routes go here)
@@ -114,14 +118,53 @@ AppRouter.get('/demo', 'DemoController', 'index');
 
 ```javascript
 // routes/web.js
-AppRouter.get('/', 'HomeController', 'index');
-AppRouter.get('/docs', 'HomeController', 'docs');
-AppRouter.get('/demo', 'DemoController', 'index');
-AppRouter.get('/api/inspire', 'ApiController', 'inspire'); // Example API route
-// ...add more routes as needed
+AppRouter.get('/', 'HomeController', 'index', { name: 'home' });
+AppRouter.get('/docs', 'HomeController', 'docs', { name: 'docs' });
+
+AppRouter.group({ prefix: '/demo', namePrefix: 'demo.' }, () => {
+    AppRouter.get('/', 'DemoController', 'index', { name: 'index' });
+    AppRouter.get('/blog/{id}', 'DemoController', 'blogView', { name: 'blog.view' });
+});
+
+AppRouter.group({ prefix: '/api', namePrefix: 'api.' }, () => {
+    AppRouter.get('/inspire', 'ApiController', 'inspire', { name: 'inspire' });
+});
 ```
 
 > Do **not** define routes in `index.html`. Keep all your route definitions in `routes/web.js` for a clean, Laravel-style structure.
+
+### Named Route Helper
+
+```javascript
+const blogDetailsUrl = route('demo.blog.view', { id: 7 }); // "/demo/blog/7"
+window.AppRouter.navigate(blogDetailsUrl);
+```
+
+### Middleware
+
+```javascript
+AppRouter.get('/dashboard', 'DashboardController', 'index', {
+    name: 'dashboard',
+    middleware: ['auth']
+});
+
+AppRouter.get('/login', 'AuthController', 'login', {
+    name: 'login',
+    middleware: ['guest']
+});
+```
+
+- Built-in middleware: `auth`, `guest`
+- Register custom middleware: `AppRouter.middleware('name', (context) => true | false | '/redirect')`
+
+### Frontend Auth Service
+
+```javascript
+Auth.login({ name: 'Demo User', role: 'member' });
+Auth.check(); // true
+Auth.user();  // { name: 'Demo User', role: 'member' }
+Auth.logout();
+```
 
 ## Controllers
 

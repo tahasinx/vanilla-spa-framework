@@ -45,7 +45,7 @@ class Api {
     // Core request method
     async request(method, url, options = {}) {
         // Check if this is a local route handled by the router
-        const localRoute = window.AppRouter.routes.find(r => r.path === url && r.method === method);
+        const localRoute = window.AppRouter.hasRoute(url, method);
         if (localRoute) {
             // Call the controller action directly
             const result = await window.AppRouter.callRoute(url, method, options.data || {});

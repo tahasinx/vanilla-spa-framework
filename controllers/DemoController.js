@@ -3,6 +3,18 @@ class DemoController extends Controller {
         super();
     }
 
+    getSharedViewData() {
+        return {
+            nav: {
+                home: route('demo.index'),
+                about: route('demo.about'),
+                services: route('demo.services'),
+                blog: route('demo.blog'),
+                contact: route('demo.contact')
+            }
+        };
+    }
+
     getBlogPosts() {
         return [
             {
@@ -62,6 +74,7 @@ class DemoController extends Controller {
 
     async index() {
         const data = {
+            ...this.getSharedViewData(),
             siteName: 'Acme Studio',
             pageTitle: 'Home',
             pageHeading: 'Surface Deals',
@@ -79,6 +92,7 @@ class DemoController extends Controller {
 
     async about() {
         const data = {
+            ...this.getSharedViewData(),
             siteName: 'Acme Studio',
             pageTitle: 'About',
             pageHeading: 'About Acme Studio',
@@ -111,6 +125,7 @@ class DemoController extends Controller {
 
     async services() {
         const data = {
+            ...this.getSharedViewData(),
             siteName: 'Acme Studio',
             pageTitle: 'Services',
             pageHeading: 'Our Services',
@@ -145,6 +160,7 @@ class DemoController extends Controller {
     async blog() {
         const posts = this.getBlogPosts();
         const data = {
+            ...this.getSharedViewData(),
             siteName: 'Acme Studio',
             pageTitle: 'Blog',
             pageHeading: 'Latest Insights',
@@ -171,6 +187,7 @@ class DemoController extends Controller {
         const post = posts.find((item) => item.id === targetId) || posts[0];
 
         const data = {
+            ...this.getSharedViewData(),
             siteName: 'Acme Studio',
             pageTitle: 'Blog View',
             pageHeading: post.title,
@@ -188,6 +205,7 @@ class DemoController extends Controller {
 
     async contact() {
         const data = {
+            ...this.getSharedViewData(),
             siteName: 'Acme Studio',
             pageTitle: 'Contact',
             pageHeading: 'Contact Us',

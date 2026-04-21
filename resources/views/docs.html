@@ -14,6 +14,7 @@
             <a href="javascript:void(0)" data-docs-target="quick-start">Quick Start</a>
             <a href="javascript:void(0)" data-docs-target="structure">Project Structure</a>
             <a href="javascript:void(0)" data-docs-target="routing">Routing</a>
+            <a href="javascript:void(0)" data-docs-target="middleware-auth">Middleware & Auth</a>
             <a href="javascript:void(0)" data-docs-target="controllers">Controllers</a>
             <a href="javascript:void(0)" data-docs-target="views">Views & Templates</a>
             <a href="javascript:void(0)" data-docs-target="syntax">Template Syntax</a>
@@ -47,6 +48,7 @@ python -m http.server 5500</pre>
 │   ├── Controller.js
 │   ├── View.js
 │   ├── Api.js
+│   ├── Auth.js
 │   └── App.js
 ├── routes/web.js
 ├── controllers/
@@ -60,15 +62,50 @@ python -m http.server 5500</pre>
             <section class="docs-section" id="routing">
                 <h2>Routing (Unified + Laravel-like)</h2>
                 <p>Define all web and API routes in <code>routes/web.js</code> using <code>AppRouter</code>.</p>
-                <pre class="docs-code">// Page routes
-AppRouter.get('/', 'HomeController', 'index');
-AppRouter.get('/docs', 'HomeController', 'docs');
-AppRouter.get('/demo', 'DemoController', 'index');
+                <pre class="docs-code">// Named page routes
+AppRouter.get('/', 'HomeController', 'index', { name: 'home' });
+AppRouter.get('/docs', 'HomeController', 'docs', { name: 'docs' });
 
-// API routes
-AppRouter.get('/api/users', 'ApiController', 'getUsers');
-AppRouter.get('/api/inspire', 'ApiController', 'inspire');</pre>
+// Route groups with prefixes
+AppRouter.group({ prefix: '/demo', namePrefix: 'demo.' }, () => {
+  AppRouter.get('/', 'DemoController', 'index', { name: 'index' });
+  AppRouter.get('/blog/{id}', 'DemoController', 'blogView', { name: 'blog.view' });
+});
+
+AppRouter.group({ prefix: '/api', namePrefix: 'api.' }, () => {
+  AppRouter.get('/users', 'ApiController', 'getUsers', { name: 'users.index' });
+  AppRouter.get('/inspire', 'ApiController', 'inspire', { name: 'inspire' });
+});</pre>
+                <pre class="docs-code">// Named route helper
+const blogPath = route('demo.blog.view', { id: 5 });
+window.AppRouter.navigate(blogPath);</pre>
                 <p class="docs-tip">Tip: keep routing centralized in one file for predictable maintenance.</p>
+            </section>
+
+            <section class="docs-section" id="middleware-auth">
+                <h2>Middleware & Frontend Auth</h2>
+                <p>This framework now supports route middleware for SPA navigation flow. It improves UX but does not replace backend authorization.</p>
+                <pre class="docs-code">// Built-in middleware usage
+AppRouter.get('/dashboard', 'DashboardController', 'index', {
+  name: 'dashboard',
+  middleware: ['auth']
+});
+
+AppRouter.get('/login', 'AuthController', 'login', {
+  name: 'login',
+  middleware: ['guest']
+});</pre>
+                <pre class="docs-code">// Register custom middleware
+AppRouter.middleware('profile-complete', () => {
+  const isComplete = Boolean(localStorage.getItem('profile.complete'));
+  return isComplete ? true : '/';
+});</pre>
+                <pre class="docs-code">// Frontend auth state helper
+Auth.login({ name: 'Demo User', role: 'member' });
+Auth.check(); // true/false
+Auth.user();  // current user object
+Auth.logout();</pre>
+                <p class="docs-tip">Security note: always enforce real auth/authorization in your backend APIs.</p>
             </section>
 
             <section class="docs-section" id="controllers">

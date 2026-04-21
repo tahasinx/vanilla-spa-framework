@@ -1,15 +1,25 @@
 // Web Routes
 // Define your routes here
 
+// Optional: register custom middleware
+// AppRouter.middleware('demo-role', ({ params }) => {
+//     if (!window.Auth.check()) return '/';
+//     return true;
+// });
+
 // Home routes
-AppRouter.get('/', 'HomeController', 'index');
-AppRouter.get('/docs', 'HomeController', 'docs');
-AppRouter.get('/demo', 'DemoController', 'index');
-AppRouter.get('/demo/about', 'DemoController', 'about');
-AppRouter.get('/demo/services', 'DemoController', 'services');
-AppRouter.get('/demo/blog', 'DemoController', 'blog');
-AppRouter.get('/demo/blog/{id}', 'DemoController', 'blogView');
-AppRouter.get('/demo/contact', 'DemoController', 'contact');
+AppRouter.get('/', 'HomeController', 'index', { name: 'home' });
+AppRouter.get('/docs', 'HomeController', 'docs', { name: 'docs' });
+
+// Demo routes
+AppRouter.group({ prefix: '/demo', namePrefix: 'demo.' }, () => {
+    AppRouter.get('/', 'DemoController', 'index', { name: 'index' });
+    AppRouter.get('/about', 'DemoController', 'about', { name: 'about' });
+    AppRouter.get('/services', 'DemoController', 'services', { name: 'services' });
+    AppRouter.get('/blog', 'DemoController', 'blog', { name: 'blog' });
+    AppRouter.get('/blog/{id}', 'DemoController', 'blogView', { name: 'blog.view' });
+    AppRouter.get('/contact', 'DemoController', 'contact', { name: 'contact' });
+});
 
 // User routes (dummy placeholders)
 // These are intentionally commented out because UserController routes are
@@ -24,14 +34,16 @@ AppRouter.get('/demo/contact', 'DemoController', 'contact');
 // AppRouter.delete('/users/{id}', 'UserController', 'destroy');
 
 // API routes
-AppRouter.get('/api/users', 'ApiController', 'getUsers');
-AppRouter.get('/api/inspire', 'ApiController', 'inspire');
-AppRouter.get('/api/demo/stats', 'ApiController', 'getDemoStats');
-AppRouter.post('/api/demo/contact', 'ApiController', 'submitDemoContact');
-AppRouter.get('/api/users/{id}', 'ApiController', 'getUser');
-AppRouter.post('/api/users', 'ApiController', 'createUser');
-AppRouter.put('/api/users/{id}', 'ApiController', 'updateUser');
-AppRouter.delete('/api/users/{id}', 'ApiController', 'deleteUser');
+AppRouter.group({ prefix: '/api', namePrefix: 'api.' }, () => {
+    AppRouter.get('/users', 'ApiController', 'getUsers', { name: 'users.index' });
+    AppRouter.get('/inspire', 'ApiController', 'inspire', { name: 'inspire' });
+    AppRouter.get('/demo/stats', 'ApiController', 'getDemoStats', { name: 'demo.stats' });
+    AppRouter.post('/demo/contact', 'ApiController', 'submitDemoContact', { name: 'demo.contact.submit' });
+    AppRouter.get('/users/{id}', 'ApiController', 'getUser', { name: 'users.show' });
+    AppRouter.post('/users', 'ApiController', 'createUser', { name: 'users.store' });
+    AppRouter.put('/users/{id}', 'ApiController', 'updateUser', { name: 'users.update' });
+    AppRouter.delete('/users/{id}', 'ApiController', 'deleteUser', { name: 'users.delete' });
+});
 
 // Blog routes (dummy placeholders)
 // These are sample CRUD definitions inspired by Laravel-style routing.
