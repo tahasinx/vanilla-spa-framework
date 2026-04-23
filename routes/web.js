@@ -1,11 +1,8 @@
 // Web Routes
 // Define your routes here
 
-// Optional: register custom middleware
-// AppRouter.middleware('demo-role', ({ params }) => {
-//     if (!window.Auth.check()) return '/';
-//     return true;
-// });
+// Register custom middleware aliases in middleware/kernel.js
+// then reference aliases in route middleware arrays.
 
 // Home routes
 AppRouter.get('/', 'HomeController', 'index', { name: 'home', middleware: ['locale'] });
@@ -17,6 +14,7 @@ AppRouter.get('/docs', 'HomeController', 'docs', {
         templates: [{ name: 'docs', path: 'resources/views/docs.html' }]
     }
 });
+AppRouter.get('/middleware-check', 'HomeController', 'index', { name: 'middleware.check', middleware: ['test'] });
 
 // Demo routes
 AppRouter.group({ prefix: '/demo', namePrefix: 'demo.' }, () => {

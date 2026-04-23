@@ -39,30 +39,36 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 
 ```
 vanilla-spa-framework/
+├── artisan                    # Laravel-style CLI wrapper
 ├── index.html                 # Main entry point
 ├── framework/
 │   └── core/
 │       ├── Router.js         # Unified route handling (global: AppRouter)
 │       ├── Controller.js     # Base controller
-│       ├── View.js          # Template rendering
-│       ├── Api.js           # API integration
-│       ├── Response.js      # Laravel-inspired response() helper
-│       ├── Validator.js     # Form/request validation rules
-│       ├── FormRequest.js   # Reusable request validation classes
+│       ├── View.js           # Blade-like template rendering
+│       ├── Api.js            # API integration + live polling
+│       ├── Response.js       # Laravel-inspired response() helper
+│       ├── Validator.js      # Form/request validation rules
+│       ├── FormRequest.js    # Reusable request validation classes
 │       ├── ServiceContainer.js
 │       ├── ServiceProvider.js
 │       ├── Store.js
-│       ├── Auth.js          # Frontend auth state service
-│       └── App.js           # Main application
+│       ├── Auth.js           # Frontend auth state service
+│       └── App.js            # Main application bootstrap
 ├── routes/
 │   └── web.js               # Route definitions (all routes go here)
 ├── controllers/
 │   ├── HomeController.js    # Home page controller
-│   └── ApiController.js     # API controller
+│   ├── DemoController.js
+│   ├── ApiController.js     # API controller
+│   └── ErrorController.js
 ├── providers/
 │   └── MetricsProvider.js
 ├── plugins/
 │   └── LoggerPlugin.js
+├── middleware/
+│   ├── kernel.js            # Central middleware alias registry
+│   └── TestMiddleware.js
 ├── tests/
 │   ├── run-tests.html
 │   ├── test-runner.js
@@ -74,6 +80,10 @@ vanilla-spa-framework/
     ├── views/               # Template files
     │   ├── welcome.html
     │   ├── docs.html
+    │   ├── errors/
+    │   │   ├── 403.html
+    │   │   ├── 404.html
+    │   │   └── 500.html
     │   └── demo/
     │       ├── home.html
     │       ├── about.html
@@ -82,6 +92,9 @@ vanilla-spa-framework/
     │       ├── blog-view.html
     │       ├── contact.html
     │       └── master/layout.html
+    ├── lang/
+    │   ├── en/messages.json
+    │   └── ar/messages.json
     └── css/
         └── app.css          # Styles
 ```
@@ -190,7 +203,39 @@ AppRouter.get('/login', 'AuthController', 'login', {
 ```
 
 - Built-in middleware: `auth`, `guest`, `locale`
-- Register custom middleware: `AppRouter.middleware('name', (context) => true | false | '/redirect')`
+- Register custom middleware in `middleware/kernel.js` (Laravel-style)
+
+Custom middleware workflow:
+
+```javascript
+// middleware/TestMiddleware.js
+window.TestMiddleware = () => true;
+```
+
+```javascript
+// middleware/kernel.js
+const routeMiddleware = {
+  test: window.TestMiddleware
+};
+
+Object.entries(routeMiddleware).forEach(([alias, handler]) => {
+  if (typeof handler === 'function') AppRouter.middleware(alias, handler);
+});
+```
+
+```html
+<!-- index.html -->
+<script defer src="middleware/TestMiddleware.js"></script>
+<script defer src="middleware/kernel.js"></script>
+```
+
+```javascript
+// routes/web.js
+AppRouter.get('/middleware-check', 'HomeController', 'index', {
+  name: 'middleware.check',
+  middleware: ['test']
+});
+```
 
 ### Frontend Auth Service
 

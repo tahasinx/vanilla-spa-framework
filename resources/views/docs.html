@@ -46,26 +46,41 @@ python -m http.server 5500 --bind 127.0.0.1</pre>
                 <h2>Project Structure</h2>
                 <p>Everything is organized into core framework modules, routes, controllers, and views.</p>
                 <pre class="docs-code">vanilla-spa-framework/
+├── artisan
 ├── index.html
 ├── framework/core/
 │   ├── Router.js
 │   ├── Controller.js
 │   ├── View.js
 │   ├── Api.js
+│   ├── Response.js
 │   ├── Validator.js
 │   ├── FormRequest.js
 │   ├── ServiceContainer.js
 │   ├── ServiceProvider.js
 │   ├── Store.js
 │   ├── Auth.js
-│   ├── Response.js
 │   └── App.js
 ├── routes/web.js
 ├── controllers/
 │   ├── HomeController.js
-│   └── ApiController.js
+│   ├── DemoController.js
+│   ├── ApiController.js
+│   └── ErrorController.js
+├── providers/MetricsProvider.js
+├── plugins/LoggerPlugin.js
+├── middleware/
+│   ├── kernel.js
+│   └── TestMiddleware.js
+├── cli/scaffold.sh
 └── resources/
     ├── views/
+    │   ├── docs.html
+    │   ├── errors/ (403, 404, 500)
+    │   └── demo/
+    ├── lang/
+    │   ├── en/messages.json
+    │   └── ar/messages.json
     └── css/app.css</pre>
             </section>
 
@@ -112,10 +127,33 @@ AppRouter.get('/', 'HomeController', 'index', {
 });
 
 // Optional locale from query/hash: /#/docs?lang=ar</pre>
-                <pre class="docs-code">// Register custom middleware
-AppRouter.middleware('profile-complete', () => {
+                <pre class="docs-code">// middleware/TestMiddleware.js
+window.ProfileCompleteMiddleware = () => {
   const isComplete = Boolean(localStorage.getItem('profile.complete'));
   return isComplete ? true : '/';
+};</pre>
+                <pre class="docs-code">// Middleware file (example)
+// middleware/TestMiddleware.js
+window.TestMiddleware = () => true;
+
+// middleware/kernel.js (single registration place)
+const routeMiddleware = {
+  test: window.TestMiddleware,
+  'profile-complete': window.ProfileCompleteMiddleware
+};
+
+Object.entries(routeMiddleware).forEach(([alias, handler]) => {
+  if (typeof handler === 'function') AppRouter.middleware(alias, handler);
+});
+
+// Load middleware script in index.html:
+// &lt;script defer src="middleware/TestMiddleware.js"&gt;&lt;/script&gt;
+// &lt;script defer src="middleware/kernel.js"&gt;&lt;/script&gt;
+
+// Apply middleware on a route:
+AppRouter.get('/middleware-check', 'HomeController', 'index', {
+  name: 'middleware.check',
+  middleware: ['test']
 });</pre>
                 <pre class="docs-code">// Frontend auth state helper
 Auth.login({ name: 'Demo User', role: 'member' });
