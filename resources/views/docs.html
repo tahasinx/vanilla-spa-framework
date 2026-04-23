@@ -17,13 +17,14 @@
             <a href="javascript:void(0)" data-docs-target="middleware-auth">Middleware & Auth</a>
             <a href="javascript:void(0)" data-docs-target="controllers">Controllers</a>
             <a href="javascript:void(0)" data-docs-target="views">Views & Templates</a>
-            <a href="javascript:void(0)" data-docs-target="syntax">Template Syntax</a>
+            <a href="javascript:void(0)" data-docs-target="syntax">Subjective</a>
             <a href="javascript:void(0)" data-docs-target="api">API Integration</a>
             <a href="javascript:void(0)" data-docs-target="forms">Form Handling</a>
             <a href="javascript:void(0)" data-docs-target="validation">Validation</a>
             <a href="javascript:void(0)" data-docs-target="platform">Platform Features</a>
             <a href="javascript:void(0)" data-docs-target="config">Configuration</a>
             <a href="javascript:void(0)" data-docs-target="browser">Browser Support</a>
+            <a href="javascript:void(0)" data-docs-target="cli-terminal">CLI/Terminal</a>
             <a href="javascript:void(0)" data-docs-target="workflow">Development Workflow</a>
         </aside>
 
@@ -57,6 +58,7 @@ python -m http.server 5500 --bind 127.0.0.1</pre>
 │   ├── ServiceProvider.js
 │   ├── Store.js
 │   ├── Auth.js
+│   ├── Response.js
 │   └── App.js
 ├── routes/web.js
 ├── controllers/
@@ -103,6 +105,13 @@ AppRouter.get('/login', 'AuthController', 'login', {
   name: 'login',
   middleware: ['guest']
 });</pre>
+                <pre class="docs-code">// Locale middleware (auto-detect locale + load translations)
+AppRouter.get('/', 'HomeController', 'index', {
+  name: 'home',
+  middleware: ['locale']
+});
+
+// Optional locale from query/hash: /#/docs?lang=ar</pre>
                 <pre class="docs-code">// Register custom middleware
 AppRouter.middleware('profile-complete', () => {
   const isComplete = Boolean(localStorage.getItem('profile.complete'));
@@ -171,6 +180,25 @@ Blade Template Engine
 &#64;else
   &lt;div class="basic-panel"&gt;Basic Content&lt;/div&gt;
 &#64;endif</pre>
+                <pre class="docs-code">&#64;unless(user.isAdmin)
+  &lt;div&gt;Visible when not admin&lt;/div&gt;
+&#64;endunless
+
+&#64;isset(user.name)
+  &lt;div&gt;Name exists&lt;/div&gt;
+&#64;endisset
+
+&#64;empty(users)
+  &lt;div&gt;No users yet&lt;/div&gt;
+&#64;endempty
+
+&#64;auth
+  &lt;div&gt;Welcome back&lt;/div&gt;
+&#64;endauth
+
+&#64;guest
+  &lt;div&gt;Please sign in&lt;/div&gt;
+&#64;endguest</pre>
 
                 <h3>Foreach Loop</h3>
                 <pre class="docs-code">&#64;foreach(users as user)
@@ -179,12 +207,176 @@ Blade Template Engine
     &lt;p&gt;{{ user.email }}&lt;/p&gt;
   &lt;/div&gt;
 &#64;endforeach</pre>
+                <pre class="docs-code">&#64;forelse(users as user)
+  &lt;div&gt;{{ user.name }}&lt;/div&gt;
+&#64;empty
+  &lt;div&gt;No users found&lt;/div&gt;
+&#64;endforelse</pre>
 
                 <h3>For Loop</h3>
                 <pre class="docs-code">&#64;for(let i=1;i<=5;i++)
   &lt;div&gt;Index: ${i}&lt;/div&gt;
 &#64;endfor</pre>
                 <p class="docs-tip">Use <code>${i}</code> for loop variables inside <code>@for</code> blocks.</p>
+                <h3>Switch + Utility Directives</h3>
+                <pre class="docs-code">&#64;switch(user.role)
+  &#64;case('admin')
+    &lt;div&gt;Admin panel&lt;/div&gt;
+    &#64;break
+  &#64;case('editor')
+    &lt;div&gt;Editor panel&lt;/div&gt;
+    &#64;break
+  &#64;default
+    &lt;div&gt;Member panel&lt;/div&gt;
+&#64;endswitch
+
+&lt;form&gt;
+  &#64;csrf
+&lt;/form&gt;
+
+&#64;push('scripts')
+  &lt;script&gt;console.log('page script');&lt;/script&gt;
+&#64;endpush
+&#64;stack('scripts')
+
+&#64;prepend('scripts')
+  &lt;script&gt;console.log('prepended first');&lt;/script&gt;
+&#64;endprepend
+
+&#64;while(loopFlag)
+  &lt;div&gt;Looping...&lt;/div&gt;
+  &#64;break
+&#64;endwhile</pre>
+                <h3>Directives Reference</h3>
+                <pre class="docs-code">// Output
+{{ value }}          // Escaped
+{!! value !!}        // Raw
+
+// Core template flow
+&#64;extends, &#64;section, &#64;yield, &#64;show, &#64;parent
+&#64;include, &#64;includeIf, &#64;includeWhen, &#64;includeUnless, &#64;each
+
+// Conditions & loops
+&#64;if, &#64;elseif, &#64;else, &#64;endif
+&#64;unless, &#64;isset, &#64;empty, &#64;switch
+&#64;for, &#64;foreach, &#64;forelse, &#64;while, &#64;continue, &#64;break
+
+// Auth / policy / env
+&#64;auth, &#64;guest, &#64;can, &#64;cannot, &#64;canany
+&#64;env, &#64;production
+
+// Forms / request helpers
+&#64;csrf, &#64;method, &#64;old, &#64;error, &#64;session
+&#64;checked, &#64;selected, &#64;disabled, &#64;readonly, &#64;required
+
+// Stacks / scripts
+&#64;push, &#64;prepend, &#64;stack, &#64;once
+
+// i18n / routing / assets
+&#64;lang, &#64;choice, &#64;route, &#64;asset
+
+// Live data wrapper
+&#64;live('/api/demo/stats', '__self__', 4000, 'json')</pre>
+                <h3>Conditional Attributes + Events</h3>
+                <pre class="docs-code">&lt;input type="checkbox" &#64;checked(user.active) /&gt;
+&lt;option &#64;selected(user.role == 'admin')&gt;Admin&lt;/option&gt;
+&lt;button &#64;disabled(formBusy) &#64;required(needsConfirmation)&gt;Save&lt;/button&gt;
+
+&lt;div &#64;class({ 'card': true, 'card--active': user.active ? true : false })&gt;...&lt;/div&gt;
+&lt;div &#64;style({ color: user.color, display: isHidden ? 'none' : 'block' })&gt;...&lt;/div&gt;
+
+&lt;!-- Generic event directive --&gt;
+&lt;button &#64;on('click', 'handleSave(event)')&gt;Save&lt;/button&gt;
+
+&lt;!-- Shorthand event directives --&gt;
+&lt;input &#64;onchange('handleChange(event)') /&gt;
+&lt;button &#64;onclick('handleClick(event)')&gt;Click&lt;/button&gt;</pre>
+                <p class="docs-tip">Ternary expressions are supported in template expressions, for example <code>{{ user.isAdmin ? 'Admin' : 'Member' }}</code>.</p>
+                <p class="docs-tip">Null-coalescing and Elvis are supported too: <code>{{ user.nickname ?? user.name }}</code> and <code>{{ user.nickname ?: user.name }}</code>.</p>
+                <h3>Includes With Data</h3>
+                <pre class="docs-code">&#64;include('partials.badge', { label: user.role })
+&#64;includeIf('partials.empty-state')
+&#64;includeWhen(user.isAdmin, 'partials.admin')
+&#64;includeUnless(user.isAdmin, 'partials.member')
+&#64;each('partials.user-row', users, 'user', 'partials.no-users')</pre>
+                <h3>Section Helpers + Gate/Env</h3>
+                <pre class="docs-code">&#64;hasSection('sidebar')
+  &lt;aside&gt;Sidebar exists&lt;/aside&gt;
+&#64;endif
+
+&#64;sectionMissing('hero')
+  &lt;div&gt;No hero section defined&lt;/div&gt;
+&#64;endif
+
+&#64;session('flash.success')
+  &lt;div class="success"&gt;{{ sessionValue }}&lt;/div&gt;
+&#64;endsession
+
+&#64;error('email')
+  &lt;small class="field-error"&gt;{{ error }}&lt;/small&gt;
+&#64;enderror
+
+&#64;can('posts.edit')
+  &lt;button&gt;Edit&lt;/button&gt;
+&#64;endcan
+
+&#64;canany(['posts.edit', 'posts.publish'])
+  &lt;button&gt;Manage post&lt;/button&gt;
+&#64;endcanany
+
+&#64;env('production')
+  &lt;!-- production-only markup --&gt;
+&#64;endenv
+
+&#64;production
+  &lt;!-- shorthand for production env --&gt;
+&#64;endproduction</pre>
+                <h3>Components + Props/Aware</h3>
+                <pre class="docs-code">// Register component template or renderer:
+window.View.component('alert', 'components.alert');
+
+// In component template:
+&#64;props({ type: 'info', title: 'Notice' })
+&#64;aware({ theme: 'light' })
+&lt;div class="alert {{ type }}" data-theme="{{ theme }}"&gt;
+  &lt;strong&gt;{{ title }}&lt;/strong&gt; {!! slot !!}
+&lt;/div&gt;
+
+// Usage:
+&lt;x-alert type="success"&gt;Saved.&lt;/x-alert&gt;
+&lt;x-card&gt;
+  &lt;x-slot name="title"&gt;Dashboard&lt;/x-slot&gt;
+  Body
+&lt;/x-card&gt;</pre>
+                <h3>Inject + Route/Asset + i18n</h3>
+                <pre class="docs-code">&#64;inject('metricsService', 'metrics')
+&lt;a href="&#64;route('demo.blog.view', { id: 2 })"&gt;Read&lt;/a&gt;
+&lt;script src="&#64;asset('resources/js/app.js')"&gt;&lt;/script&gt;
+&lt;p&gt;&#64;lang('messages.welcome', { name: user.name })&lt;/p&gt;
+&lt;p&gt;&#64;choice('messages.items', cartCount, { count: cartCount })&lt;/p&gt;</pre>
+                <pre class="docs-code">// Laravel-like lang folder loading
+await window.View.loadTranslations('en', ['messages']);
+await window.View.loadTranslations('ar', ['messages']);
+window.View.setFallbackLocale('en');
+window.View.setLocale('ar');
+
+// Files:
+// resources/lang/en/messages.json
+// resources/lang/ar/messages.json
+
+// Key usage in templates:
+// &#64;lang('messages.welcome', { name: user.name })
+// {{ __('messages.status.published') }}</pre>
+                <h3>Custom Directives</h3>
+                <pre class="docs-code">// Register once during app boot:
+window.View.directive('uppercase', (expression, data, view) => {
+  const value = view.resolveExpressionValue(expression, data);
+  return String(value || '').toUpperCase();
+});
+
+// Use in template:
+&#64;uppercase('hello')
+&#64;uppercase(user.name)</pre>
             </section>
 
             <section class="docs-section" id="api">
@@ -218,6 +410,30 @@ async getUsers() {
                 <div id="docs-api-result" class="api-result">
                     <p>Click a button to run API integration examples.</p>
                 </div>
+                <h3>Live Data Polling</h3>
+                <pre class="docs-code">&lt;!-- Attribute-based auto polling --&gt;
+&lt;div
+  class="api-result"
+  data-live-url="/api/demo/stats"
+  data-live-target="__self__"
+  data-live-interval="4000"
+  data-live-response-type="json"
+&gt;&lt;/div&gt;
+
+// Programmatic manager
+const feed = window.Api.live({
+  id: 'stats-feed',
+  url: '/api/demo/stats',
+  target: '#docs-api-result',
+  interval: 4000,
+  dedupe: true,
+  backoff: true
+});
+
+// Stop later:
+feed.stop();</pre>
+                <pre class="docs-code">// Template directive wrapper
+&#64;live('/api/demo/stats', '__self__', 4000, 'json')</pre>
 
                 <h3>CORS Notes</h3>
                 <p>External APIs must allow CORS. Frontend JS cannot bypass CORS restrictions by itself.</p>
@@ -279,6 +495,19 @@ class DemoSignupRequest extends FormRequest {
 window.DemoSignupRequest = DemoSignupRequest;
 
 // In HTML form: data-request="DemoSignupRequest"</pre>
+                <pre class="docs-code">// Blade-style validation message block
+&#64;error('email')
+  &lt;small class="field-error"&gt;{{ error }}&lt;/small&gt;
+&#64;enderror
+
+// Named bag variant
+&#64;error('email', 'login')
+  &lt;small class="field-error"&gt;{{ error }}&lt;/small&gt;
+&#64;enderror</pre>
+                <pre class="docs-code">// old input helper
+&lt;input name="email" value="{{ old('email', user.email ?? '') }}" /&gt;
+// Directive form:
+&#64;old('email', user.email)</pre>
                 <h3>Live Validation Demo</h3>
                 <p>Set <code>data-validate-live="true"</code> to validate while users type and auto-highlight fields.</p>
                 <pre class="docs-code">&lt;form
@@ -345,10 +574,29 @@ window.AppStore.subscribe((state) => {
                 <pre class="docs-code">// Run tests in browser:
 tests/run-tests.html
 
-// Generate boilerplate:
-./cli/scaffold.sh controller ProfileController
-./cli/scaffold.sh view profile
-./cli/scaffold.sh request CreateProfileRequest</pre>
+// Generate boilerplate (Laravel-style wrapper):
+./artisan make:controller ProfileController
+./artisan make:view profile
+./artisan make:request CreateProfileRequest
+./artisan make:component AlertCard
+./artisan make:provider MetricsProvider
+./artisan make:middleware EnsureProfileComplete
+
+// Utilities:
+./artisan route:list
+./artisan lang:list
+./artisan cache:clear
+./artisan test
+./artisan serve 5500</pre>
+                <h3>View Render Cache</h3>
+                <pre class="docs-code">// Optional LRU render cache
+window.View.enableRenderCache({ maxEntries: 300, ttlMs: 10000 });
+
+// Turn off (for debugging)
+window.View.disableRenderCache();
+
+// Clear cache manually
+window.View.clearRenderCache();</pre>
                 <p class="docs-tip">These features provide the final step toward plugin-ready architecture, maintainable growth, and repeatable development workflow.</p>
             </section>
 
@@ -371,6 +619,28 @@ tests/run-tests.html
                 </ul>
             </section>
 
+            <section class="docs-section" id="cli-terminal">
+                <h2>CLI/Terminal</h2>
+                <p>Use the Laravel-style wrapper command to scaffold files and run utility commands from your terminal.</p>
+                <pre class="docs-code">// Scaffolding
+./artisan make:controller ProfileController
+./artisan make:view profile
+./artisan make:request CreateProfileRequest
+./artisan make:component AlertCard
+./artisan make:provider MetricsProvider
+./artisan make:middleware EnsureProfileComplete
+./artisan make:lang en messages
+./artisan make:test validator
+
+// Utilities
+./artisan route:list
+./artisan lang:list
+./artisan cache:clear
+./artisan test
+./artisan serve 5500</pre>
+                <p class="docs-tip">Backward-compatible script usage still works: <code>./cli/scaffold.sh controller ProfileController</code>.</p>
+            </section>
+
             <section class="docs-section" id="workflow">
                 <h2>Development Workflow</h2>
                 <ol class="docs-list">
@@ -381,7 +651,6 @@ tests/run-tests.html
                 </ol>
                 <nav class="docs-nav">
                     <a href="/#/" data-route="/">Back to Home</a>
-                    <a href="/#/demo/contact" data-route="/demo/contact">Need Help? Demo Contact</a>
                 </nav>
             </section>
         </main>

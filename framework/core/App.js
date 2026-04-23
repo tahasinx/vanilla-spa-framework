@@ -6,6 +6,7 @@ class App {
     static liveValidationTimers = {};
     static providers = [];
     static plugins = [];
+    static liveBindingCounter = 0;
 
     // Initialize the application
     static init() {
@@ -329,6 +330,59 @@ class App {
                 event.preventDefault();
                 window.Api.updateElement(targetSelector, apiUrl);
             }
+        });
+
+        window.addEventListener('hashchange', () => App.scheduleLiveDataBindingSync());
+        App.scheduleLiveDataBindingSync();
+    }
+
+    static scheduleLiveDataBindingSync() {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => App.syncLiveDataBindings());
+        });
+    }
+
+    static syncLiveDataBindings() {
+        if (!window.Api || typeof window.Api.live !== 'function') {
+            return;
+        }
+
+        if (typeof window.Api.stopLiveByPrefix === 'function') {
+            window.Api.stopLiveByPrefix('auto:');
+        }
+
+        const elements = document.querySelectorAll('[data-live-url]');
+        elements.forEach((element) => {
+            const liveUrl = element.getAttribute('data-live-url');
+            if (!liveUrl) {
+                return;
+            }
+
+            let liveId = element.getAttribute('data-live-id');
+            if (!liveId) {
+                App.liveBindingCounter += 1;
+                liveId = `auto:${App.liveBindingCounter}`;
+                element.setAttribute('data-live-id', liveId);
+            }
+
+            const intervalRaw = element.getAttribute('data-live-interval');
+            const interval = Number(intervalRaw || 5000);
+            const targetSelector = element.getAttribute('data-live-target') || '__self__';
+            const responseType = element.getAttribute('data-live-response-type') || 'json';
+            const dedupe = element.getAttribute('data-live-dedupe') !== 'false';
+            const backoff = element.getAttribute('data-live-backoff') !== 'false';
+            const target = targetSelector === '__self__' ? element : targetSelector;
+
+            window.Api.live({
+                id: liveId,
+                url: liveUrl,
+                target,
+                interval: Number.isFinite(interval) ? interval : 5000,
+                responseType,
+                dedupe,
+                backoff,
+                immediate: true
+            });
         });
     }
 

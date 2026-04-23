@@ -1,0 +1,8 @@
+{
+  "welcome": "Welcome, :name",
+  "items": "1 item|:count items",
+  "status": {
+    "draft": "Draft",
+    "published": "Published"
+  }
+}

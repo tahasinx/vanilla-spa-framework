@@ -5,6 +5,7 @@ class Api {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
+        this.liveJobs = new Map();
     }
 
     // Set base URL for API calls
@@ -210,5 +211,192 @@ class Api {
         delete config.headers['Content-Type'];
 
         return this.post(url, formData, config);
+    }
+
+    renderLiveResponse(targetSelectorOrElement, response, options = {}) {
+        const target = (typeof targetSelectorOrElement === 'string')
+            ? document.querySelector(targetSelectorOrElement)
+            : targetSelectorOrElement;
+        if (!target) {
+            return;
+        }
+
+        const allowHtml = options.responseType === 'html' || response.type === 'html';
+        if (window.App && typeof window.App.constructor.renderResponseContent === 'function') {
+            window.App.constructor.renderResponseContent(target, response.data, allowHtml);
+            return;
+        }
+
+        if (allowHtml && typeof response.data === 'string') {
+            target.innerHTML = response.data;
+            return;
+        }
+
+        if (typeof response.data === 'string') {
+            target.textContent = response.data;
+            return;
+        }
+
+        target.innerHTML = `<pre class="api-pretty-json">${JSON.stringify(response.data, null, 2)}</pre>`;
+    }
+
+    normalizeLiveId(config = {}) {
+        if (config.id) {
+            return String(config.id);
+        }
+        const url = String(config.url || '');
+        const target = String(config.target || '');
+        return `live:${url}:${target}`;
+    }
+
+    getLiveSnapshotSignature(response) {
+        if (!response) {
+            return '';
+        }
+        const payload = {
+            status: response.status,
+            type: response.type || null,
+            data: response.data
+        };
+        try {
+            return JSON.stringify(payload);
+        } catch (error) {
+            return String(payload.data);
+        }
+    }
+
+    live(config = {}) {
+        const {
+            url,
+            target = null,
+            interval = 5000,
+            immediate = true,
+            dedupe = true,
+            backoff = true,
+            maxInterval = 60000,
+            responseType = 'json'
+        } = config;
+
+        if (!url) {
+            throw new Error('Api.live requires a url.');
+        }
+
+        const id = this.normalizeLiveId(config);
+        const existing = this.liveJobs.get(id);
+        if (existing) {
+            return existing.publicApi;
+        }
+
+        const baseInterval = Math.max(250, Number(interval) || 5000);
+        const maxIntervalValue = Math.max(baseInterval, Number(maxInterval) || 60000);
+
+        const state = {
+            id,
+            url,
+            target,
+            baseInterval,
+            currentInterval: baseInterval,
+            maxInterval: maxIntervalValue,
+            dedupe: Boolean(dedupe),
+            backoff: Boolean(backoff),
+            responseType,
+            inFlight: false,
+            running: false,
+            timer: null,
+            failCount: 0,
+            lastSignature: null
+        };
+
+        const scheduleNext = () => {
+            if (!state.running) {
+                return;
+            }
+            clearTimeout(state.timer);
+            state.timer = setTimeout(() => tick(), state.currentInterval);
+        };
+
+        const tick = async () => {
+            if (!state.running || state.inFlight) {
+                return;
+            }
+            state.inFlight = true;
+            try {
+                const response = await this.get(state.url);
+                const signature = this.getLiveSnapshotSignature(response);
+                const changed = !state.dedupe || signature !== state.lastSignature;
+                if (changed) {
+                    this.renderLiveResponse(state.target, response, { responseType: state.responseType });
+                    state.lastSignature = signature;
+                }
+                state.failCount = 0;
+                state.currentInterval = state.baseInterval;
+            } catch (error) {
+                state.failCount += 1;
+                if (state.backoff) {
+                    const factor = Math.min(6, state.failCount);
+                    state.currentInterval = Math.min(state.maxInterval, state.baseInterval * (2 ** factor));
+                }
+                console.warn(`Live polling failed (${state.id})`, error);
+            } finally {
+                state.inFlight = false;
+                scheduleNext();
+            }
+        };
+
+        const start = () => {
+            if (state.running) {
+                return;
+            }
+            state.running = true;
+            if (immediate) {
+                tick();
+                return;
+            }
+            scheduleNext();
+        };
+
+        const stop = () => {
+            state.running = false;
+            clearTimeout(state.timer);
+            state.timer = null;
+            this.liveJobs.delete(id);
+        };
+
+        const publicApi = {
+            id,
+            start,
+            stop,
+            isRunning: () => state.running
+        };
+
+        state.publicApi = publicApi;
+        this.liveJobs.set(id, state);
+        start();
+        return publicApi;
+    }
+
+    stopLive(id) {
+        const key = String(id || '');
+        if (!key) {
+            return;
+        }
+        const job = this.liveJobs.get(key);
+        if (job && job.publicApi) {
+            job.publicApi.stop();
+        }
+    }
+
+    stopLiveByPrefix(prefix = '') {
+        const text = String(prefix || '');
+        if (!text) {
+            return;
+        }
+        Array.from(this.liveJobs.keys())
+            .filter((key) => key.startsWith(text))
+            .forEach((key) => this.stopLive(key));
+    }
+
+    stopAllLive() {
+        Array.from(this.liveJobs.keys()).forEach((key) => this.stopLive(key));
     }
 } 

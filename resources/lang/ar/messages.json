@@ -1,0 +1,8 @@
+{
+  "welcome": "مرحبا، :name",
+  "items": "عنصر واحد|:count عناصر",
+  "status": {
+    "draft": "مسودة",
+    "published": "منشور"
+  }
+}

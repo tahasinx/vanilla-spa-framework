@@ -145,6 +145,57 @@ class Router {
             }
             return true;
         });
+
+        this.middleware('locale', async (context = {}) => {
+            if (!window.View) {
+                return true;
+            }
+
+            const readQuery = (name) => {
+                const key = String(name || '').trim();
+                if (!key) return '';
+                try {
+                    const search = window.location.hash.includes('?')
+                        ? window.location.hash.split('?')[1]
+                        : window.location.search.replace(/^\?/, '');
+                    if (!search) return '';
+                    const params = new URLSearchParams(search);
+                    return params.get(key) || '';
+                } catch (error) {
+                    return '';
+                }
+            };
+
+            const routeLocale = context.params && context.params.locale ? String(context.params.locale) : '';
+            const queryLocale = readQuery('lang');
+            const storeLocale = (window.AppStore && typeof window.AppStore.getState === 'function' && window.AppStore.getState().locale)
+                ? String(window.AppStore.getState().locale)
+                : '';
+            const browserLocale = (navigator.language || 'en').split('-')[0];
+
+            const locale = (routeLocale || queryLocale || storeLocale || browserLocale || 'en').toLowerCase();
+            const fallbackLocale = (window.App && window.App.constructor && window.App.constructor.config && window.App.constructor.config.fallbackLocale)
+                ? String(window.App.constructor.config.fallbackLocale)
+                : 'en';
+
+            if (typeof window.View.setFallbackLocale === 'function') {
+                window.View.setFallbackLocale(fallbackLocale);
+            }
+            if (typeof window.View.setLocale === 'function') {
+                window.View.setLocale(locale);
+            }
+            if (typeof window.View.loadTranslations === 'function') {
+                const groups = (window.App && window.App.constructor && window.App.constructor.config && Array.isArray(window.App.constructor.config.langGroups))
+                    ? window.App.constructor.config.langGroups
+                    : ['messages'];
+                await window.View.loadTranslations(locale, groups);
+                if (fallbackLocale && fallbackLocale !== locale) {
+                    await window.View.loadTranslations(fallbackLocale, groups);
+                }
+            }
+
+            return true;
+        });
     }
 
     async runMiddlewares(route, context) {

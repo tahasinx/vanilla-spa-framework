@@ -13,10 +13,16 @@ A Laravel-inspired frontend framework built with pure JavaScript. No Node.js req
 - ✅ **Centralized Store**: Lightweight shared state management
 - ✅ **Plugin System**: Install app plugins with `App.use(...)`
 - ✅ **Template System**: Blade-like syntax (`{{ variable }}`, `@if`, `@foreach`, `@for`, `@extends`, `@section`, `@yield`, `@include`)
+- ✅ **Extended Blade-like Directives**: `@elseif`, `@unless`, `@isset`, `@empty`, `@switch`, `@forelse`, `@while`, `@auth/@guest`, `@can/@cannot/@canany`, `@env/@production`, `@stack/@push/@prepend`, `@csrf/@method`, `@session/@error/@old`, `@json/@js`, Blade comments
+- ✅ **Blade-like Attribute/Event Directives**: `@checked`, `@selected`, `@disabled`, `@readonly`, `@required`, `@on(...)`, `@onclick(...)`, `@onchange(...)`
+- ✅ **Class/Style Helpers**: `@class({...})`, `@style({...})`
+- ✅ **Component-lite Templates**: `<x-component />`, `<x-slot>`, `@props`, `@aware`
+- ✅ **Template Helpers**: `@inject`, `@route`, `@asset`, `@lang`, `@choice`
 - ✅ **API Integration**: Easy API calls with DOM updates
 - ✅ **Pure JavaScript**: No build tools or Node.js required
 - ✅ **Controller Pattern**: Organize code with controllers
 - ✅ **View Rendering**: Template rendering with data binding
+- ✅ **View Render Cache**: Optional in-memory LRU cache with TTL
 - ✅ **Frontend Auth Service**: `Auth.check()`, `Auth.login()`, `Auth.logout()`, `Auth.user()`
 
 ## Quick Start
@@ -152,6 +158,12 @@ AppRouter.group({ prefix: '/demo', namePrefix: 'demo.' }, () => {
 AppRouter.group({ prefix: '/api', namePrefix: 'api.' }, () => {
     AppRouter.get('/inspire', 'ApiController', 'inspire', { name: 'inspire' });
 });
+
+// Locale middleware example
+AppRouter.get('/', 'HomeController', 'index', {
+    name: 'home',
+    middleware: ['locale']
+});
 ```
 
 > Do **not** define routes in `index.html`. Keep all your route definitions in `routes/web.js` for a clean, Laravel-style structure.
@@ -177,7 +189,7 @@ AppRouter.get('/login', 'AuthController', 'login', {
 });
 ```
 
-- Built-in middleware: `auth`, `guest`
+- Built-in middleware: `auth`, `guest`, `locale`
 - Register custom middleware: `AppRouter.middleware('name', (context) => true | false | '/redirect')`
 
 ### Frontend Auth Service
@@ -278,6 +290,147 @@ Create templates in `resources/views/` with Laravel-like syntax:
 **Note:** For `@for` loops, use `${i}` for loop variables inside the loop body. Use `{{ variable }}` for data context variables elsewhere. This is the most robust and JS-like approach for frontend template engines.
 
 By default, `{{ variable }}` is HTML-escaped (safe output). Use `{!! variable !!}` only for trusted HTML fragments.
+Ternary expressions are supported in template expressions, e.g. `{{ user.isAdmin ? 'Admin' : 'Member' }}`.
+Null-coalescing and Elvis are supported too: `{{ user.nickname ?? user.name }}` and `{{ user.nickname ?: user.name }}`.
+
+Includes can receive data and conditional rendering helpers:
+
+```html
+@include('partials.badge', { label: user.role })
+@includeIf('partials.empty-state')
+@includeWhen(user.isAdmin, 'partials.admin')
+@includeUnless(user.isAdmin, 'partials.member')
+@each('partials.user-row', users, 'user', 'partials.no-users')
+```
+
+Conditional attributes and events:
+
+```html
+<input type="checkbox" @checked(user.active) />
+<option @selected(user.role == 'admin')>Admin</option>
+<button @disabled(formBusy)>Save</button>
+
+<button @on('click', 'handleSave(event)')>Save</button>
+<input @onchange('handleChange(event)') />
+<div @class({ 'card': true, 'card--active': user.active })></div>
+<div @style({ color: user.color, display: isHidden ? 'none' : 'block' })></div>
+```
+
+Custom directives are supported too:
+
+```javascript
+window.View.directive('uppercase', (expression, data, view) => {
+  const value = view.resolveExpressionValue(expression, data);
+  return String(value || '').toUpperCase();
+});
+```
+
+```html
+@uppercase('hello')
+@uppercase(user.name)
+```
+
+Component-lite support:
+
+```javascript
+window.View.component('alert', 'components.alert');
+```
+
+```html
+<x-alert type="success">Saved.</x-alert>
+<x-card>
+  <x-slot name="title">Dashboard</x-slot>
+  Body content
+</x-card>
+```
+
+Template helper directives:
+
+```html
+@inject('metricsService', 'metrics')
+<a href="@route('demo.blog.view', { id: 2 })">Read</a>
+<script src="@asset('resources/js/app.js')"></script>
+<p>@lang('messages.welcome', { name: user.name })</p>
+<p>@choice('messages.items', cartCount, { count: cartCount })</p>
+```
+
+Live data polling:
+
+```html
+<!-- Attribute-based auto polling -->
+<div
+  class="api-result"
+  data-live-url="/api/demo/stats"
+  data-live-target="__self__"
+  data-live-interval="4000"
+  data-live-response-type="json"
+></div>
+```
+
+```javascript
+// Programmatic manager (start/stop/backoff/dedupe)
+const feed = window.Api.live({
+  id: 'stats-feed',
+  url: '/api/demo/stats',
+  target: '#stats-panel',
+  interval: 4000,
+  dedupe: true,
+  backoff: true
+});
+
+feed.stop();
+```
+
+```html
+<!-- Template directive wrapper -->
+@live('/api/demo/stats', '__self__', 4000, 'json')
+```
+
+View render cache (optional, Laravel-like optimization mindset):
+
+```javascript
+// Enable cache with LRU size + optional TTL (ms)
+window.View.enableRenderCache({ maxEntries: 300, ttlMs: 10000 });
+
+// Clear all cached render outputs
+window.View.clearRenderCache();
+
+// Disable cache when needed (debug/dev)
+window.View.disableRenderCache();
+```
+
+Cache is auto-invalidated when a template is registered/loaded again via `register()` or `loadTemplate()`.
+
+Laravel-like folder-based localization is supported:
+
+```text
+resources/lang/en/messages.json
+resources/lang/ar/messages.json
+```
+
+```javascript
+await window.View.loadTranslations('en', ['messages']);
+await window.View.loadTranslations('ar', ['messages']);
+window.View.setFallbackLocale('en');
+window.View.setLocale('ar');
+```
+
+You can automate locale loading per route using middleware and app config:
+
+```javascript
+App.config({
+  fallbackLocale: 'en',
+  langGroups: ['messages']
+});
+```
+
+Use keys in templates:
+
+```html
+@lang('messages.welcome', { name: user.name })
+{{ __('messages.status.published') }}
+@choice('messages.items', cartCount, { count: cartCount })
+```
 
 ## API Integration
 
@@ -465,6 +618,27 @@ window.DemoSignupRequest = DemoSignupRequest;
 <form data-request="DemoSignupRequest" data-target="#result"></form>
 ```
 
+Blade-style error rendering:
+
+```html
+@error('email')
+  <small class="field-error">{{ error }}</small>
+@enderror
+```
+
+`@error` checks `data.errors` first, then `AppStore` state (`state.errors`) and exposes the first message as `error`.
+
+Named error bag + old input examples:
+
+```html
+<input name="email" value="{{ old('email', user.email ?? '') }}">
+@error('email', 'login')
+  <small class="field-error">{{ error }}</small>
+@enderror
+```
+
+`old()` reads from `data.old` (or `data.input`) first, then `AppStore` state (`state.old` / `state.input`).
+
 ## Centralized Store
 
 ```javascript
@@ -483,12 +657,36 @@ Current tests cover validator, router named routes, store updates, and container
 
 ## CLI Scaffolding
 
-Use the scaffold script to generate boilerplate files:
+Use the CLI to generate boilerplate files:
+
+```bash
+./artisan make:controller ProfileController
+./artisan make:view profile
+./artisan make:request CreateProfileRequest
+./artisan make:component AlertCard
+./artisan make:provider MetricsProvider
+./artisan make:middleware EnsureProfileComplete
+./artisan make:lang en messages
+./artisan make:test validator
+```
+
+Direct `scaffold.sh` usage is still supported:
 
 ```bash
 ./cli/scaffold.sh controller ProfileController
 ./cli/scaffold.sh view profile
 ./cli/scaffold.sh request CreateProfileRequest
+./cli/scaffold.sh middleware EnsureProfileComplete
+```
+
+Utility commands:
+
+```bash
+./artisan route:list
+./artisan lang:list
+./artisan cache:clear
+./artisan test
+./artisan serve 5500
 ```
 
 ## Configuration

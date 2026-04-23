@@ -8,9 +8,10 @@
 // });
 
 // Home routes
-AppRouter.get('/', 'HomeController', 'index', { name: 'home' });
+AppRouter.get('/', 'HomeController', 'index', { name: 'home', middleware: ['locale'] });
 AppRouter.get('/docs', 'HomeController', 'docs', {
     name: 'docs',
+    middleware: ['locale'],
     // Single prefetch example (keep most routes simple).
     prefetch: {
         templates: [{ name: 'docs', path: 'resources/views/docs.html' }]
